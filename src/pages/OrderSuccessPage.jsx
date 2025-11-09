@@ -1,0 +1,297 @@
+import React, { useEffect, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import SEO from '../components/SEO';
+import { useCartStore } from '../store/cartStore';
+
+const OrderSuccessPage = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { clearCart } = useCartStore();
+  const [orderData, setOrderData] = useState(null);
+
+  useEffect(() => {
+    // Lấy thông tin đơn hàng từ state (được truyền từ CheckoutPage)
+    if (location.state?.orderData) {
+      setOrderData(location.state.orderData);
+      // Clear giỏ hàng sau khi đặt hàng thành công
+      clearCart();
+    } else {
+      // Nếu không có orderData, redirect về trang chủ
+      setTimeout(() => {
+        navigate('/');
+      }, 3000);
+    }
+  }, [location.state, clearCart, navigate]);
+
+  const formatPrice = (price) => {
+    return price?.toLocaleString('vi-VN') || '0';
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  // Bỏ loading spinner - redirect ngay nếu không có data
+  if (!orderData) {
+    return null;
+  }
+
+  return (
+    <>
+      <SEO
+        title="Đặt hàng thành công - ANKH Store"
+        description="Cảm ơn bạn đã đặt hàng tại ANKH Store. Đơn hàng của bạn đã được tiếp nhận và đang được xử lý."
+      />
+      
+      <div className="min-h-screen bg-gray-50 py-8 md:py-12">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+          
+          {/* Success Icon & Message */}
+          <div className="bg-white rounded-2xl shadow-lg p-8 md:p-12 text-center mb-6">
+            {/* Success Icon */}
+            <div className="mx-auto w-20 h-20 md:w-24 md:h-24 bg-green-100 rounded-full flex items-center justify-center mb-6 animate-fadeIn">
+              <svg className="w-12 h-12 md:w-14 md:h-14 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+
+            {/* Title */}
+            <h1 className="text-2xl md:text-3xl font-black text-gray-900 mb-3 uppercase tracking-tight">
+              Đặt hàng thành công!
+            </h1>
+            
+            <p className="text-gray-600 text-sm md:text-base mb-6">
+              Cảm ơn bạn đã mua hàng tại <span className="font-bold text-[#ff6600]">ANKH Store</span>
+            </p>
+
+            {/* Order Code */}
+            {orderData.order_code && (
+              <div className="inline-block bg-orange-50 border-2 border-orange-200 rounded-lg px-6 py-3 mb-6">
+                <p className="text-xs text-gray-600 mb-1">Mã đơn hàng</p>
+                <p className="text-2xl font-black text-[#ff6600] tracking-wider">
+                  {orderData.order_code}
+                </p>
+              </div>
+            )}
+
+            {/* Status Message */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+              <div className="flex items-start gap-3">
+                <svg className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
+                <p className="text-sm text-left text-gray-700">
+                  Đơn hàng của bạn đã được tiếp nhận và đang được xử lý. Chúng tôi sẽ liên hệ với bạn trong thời gian sớm nhất để xác nhận đơn hàng.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Order Details */}
+          <div className="bg-white rounded-2xl shadow-lg p-6 md:p-8 mb-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-6 uppercase tracking-tight border-b pb-3">
+              Thông tin đơn hàng
+            </h2>
+
+            {/* Customer Info */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div>
+                <p className="text-xs text-gray-500 mb-1">Người nhận</p>
+                <p className="text-sm font-semibold text-gray-900">{orderData.customer_name}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 mb-1">Số điện thoại</p>
+                <p className="text-sm font-semibold text-gray-900">{orderData.customer_phone}</p>
+              </div>
+              {orderData.customer_email && (
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Email</p>
+                  <p className="text-sm font-semibold text-gray-900">{orderData.customer_email}</p>
+                </div>
+              )}
+              <div>
+                <p className="text-xs text-gray-500 mb-1">Ngày đặt hàng</p>
+                <p className="text-sm font-semibold text-gray-900">
+                  {formatDate(orderData.created_at || new Date())}
+                </p>
+              </div>
+            </div>
+
+            {/* Shipping Address */}
+            {orderData.shipping_address && (
+              <div className="mb-6">
+                <p className="text-xs text-gray-500 mb-1">Địa chỉ giao hàng</p>
+                <p className="text-sm font-semibold text-gray-900">{orderData.shipping_address}</p>
+              </div>
+            )}
+
+            {/* Note */}
+            {orderData.note && (
+              <div className="mb-6">
+                <p className="text-xs text-gray-500 mb-1">Ghi chú</p>
+                <p className="text-sm text-gray-700 italic">{orderData.note}</p>
+              </div>
+            )}
+
+            {/* Order Items */}
+            {orderData.items && orderData.items.length > 0 && (
+              <div className="border-t pt-6">
+                <p className="text-xs text-gray-500 mb-3">Sản phẩm đã đặt</p>
+                <div className="space-y-3">
+                  {orderData.items.map((item, index) => (
+                    <div key={index} className="flex items-center gap-4 pb-3 border-b last:border-b-0">
+                      {item.image && (
+                        <img 
+                          src={item.image} 
+                          alt={item.name}
+                          className="w-16 h-16 object-cover rounded-lg bg-gray-100"
+                        />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 truncate">{item.name}</p>
+                        {item.size && (
+                          <p className="text-xs text-gray-500">Size: {item.size}</p>
+                        )}
+                        <p className="text-xs text-gray-500">SL: {item.quantity}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-bold text-gray-900">
+                          {formatPrice(item.price * item.quantity)} ₫
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Order Summary */}
+            <div className="border-t mt-6 pt-6 space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Tạm tính</span>
+                <span className="font-semibold text-gray-900">
+                  {formatPrice(orderData.subtotal || orderData.total_amount)} ₫
+                </span>
+              </div>
+              
+              {orderData.shipping_fee > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Phí vận chuyển</span>
+                  <span className="font-semibold text-gray-900">
+                    {formatPrice(orderData.shipping_fee)} ₫
+                  </span>
+                </div>
+              )}
+
+              {orderData.discount_amount > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Giảm giá</span>
+                  <span className="font-semibold text-green-600">
+                    -{formatPrice(orderData.discount_amount)} ₫
+                  </span>
+                </div>
+              )}
+
+              <div className="flex justify-between text-base md:text-lg pt-3 border-t-2 border-dashed">
+                <span className="font-bold text-gray-900">Tổng cộng</span>
+                <span className="font-black text-[#ff6600] text-xl">
+                  {formatPrice(orderData.total_amount)} ₫
+                </span>
+              </div>
+            </div>
+
+            {/* Payment Method */}
+            {orderData.payment_method && (
+              <div className="mt-6 pt-6 border-t">
+                <p className="text-xs text-gray-500 mb-1">Phương thức thanh toán</p>
+                <p className="text-sm font-semibold text-gray-900">
+                  {orderData.payment_method === 'cod' ? 'Thanh toán khi nhận hàng (COD)' : 
+                   orderData.payment_method === 'bank' ? 'Chuyển khoản ngân hàng' :
+                   orderData.payment_method === 'momo' ? 'Ví MoMo' :
+                   orderData.payment_method === 'vnpay' ? 'VNPay' :
+                   'Thanh toán khi nhận hàng'}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Next Steps */}
+          <div className="bg-white rounded-2xl shadow-lg p-6 md:p-8 mb-6">
+            <h2 className="text-lg font-bold text-gray-900 mb-4 uppercase tracking-tight">
+              Bước tiếp theo
+            </h2>
+            <ul className="space-y-3">
+              <li className="flex items-start gap-3">
+                <span className="flex-shrink-0 w-6 h-6 bg-[#ff6600] text-white rounded-full flex items-center justify-center text-xs font-bold">
+                  1
+                </span>
+                <span className="text-sm text-gray-700">
+                  Chúng tôi sẽ gọi điện xác nhận đơn hàng trong vòng <strong>2-4 giờ</strong>
+                </span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="flex-shrink-0 w-6 h-6 bg-[#ff6600] text-white rounded-full flex items-center justify-center text-xs font-bold">
+                  2
+                </span>
+                <span className="text-sm text-gray-700">
+                  Đơn hàng sẽ được giao trong vòng <strong>2-5 ngày làm việc</strong>
+                </span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="flex-shrink-0 w-6 h-6 bg-[#ff6600] text-white rounded-full flex items-center justify-center text-xs font-bold">
+                  3
+                </span>
+                <span className="text-sm text-gray-700">
+                  Bạn có thể tra cứu đơn hàng bằng <strong>mã đơn hàng</strong> và <strong>số điện thoại</strong>
+                </span>
+              </li>
+            </ul>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Link
+              to="/orders"
+              className="bg-[#ff6600] text-white py-3 px-6 rounded-lg font-bold text-center hover:bg-orange-700 transition uppercase text-sm no-underline shadow-md"
+            >
+              Tra cứu đơn hàng
+            </Link>
+            <Link
+              to="/"
+              className="bg-white border-2 border-gray-300 text-gray-800 py-3 px-6 rounded-lg font-bold text-center hover:bg-gray-50 transition uppercase text-sm no-underline shadow-md"
+            >
+              Về trang chủ
+            </Link>
+          </div>
+
+          {/* Contact Info */}
+          <div className="mt-8 text-center">
+            <p className="text-sm text-gray-600 mb-2">
+              Cần hỗ trợ? Liên hệ với chúng tôi:
+            </p>
+            <div className="flex items-center justify-center gap-6 text-sm">
+              <a href="tel:+84123456789" className="text-[#ff6600] hover:underline font-semibold">
+                📞 +84 123 456 789
+              </a>
+              <a href="mailto:support@ankh-store.com" className="text-[#ff6600] hover:underline font-semibold">
+                ✉️ support@ankh-store.com
+              </a>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </>
+  );
+};
+
+export default OrderSuccessPage;
+

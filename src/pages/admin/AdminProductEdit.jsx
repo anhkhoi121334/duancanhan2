@@ -1,0 +1,542 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { SEO } from '@components';
+import { 
+  FiGrid, FiPackage, FiShoppingBag, FiUsers, FiStar, 
+  FiTrendingUp, FiDollarSign, FiHelpCircle, FiSettings, 
+  FiLogOut, FiMenu, FiBell, FiSave, FiX, FiDroplet, FiTag, FiArrowLeft, FiImage
+} from 'react-icons/fi';
+import { API_URL } from '../../config/env';
+import { updateProduct, getProductById, getBrands, getCategories } from '../../services/api';
+
+const AdminProductEdit = () => {
+  const navigate = useNavigate();
+  const { id } = useParams();
+  const [activeMenu, setActiveMenu] = useState('Sản phẩm');
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [adminName, setAdminName] = useState('Admin User');
+  const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true);
+  const [brands, setBrands] = useState([]);
+  const [categories, setCategories] = useState([]);
+
+  // Form data
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    price: '',
+    price_sale: '',
+    brand_id: '',
+    category_id: '',
+    gender: 'Nam',
+    status: 1,
+    variants: []
+  });
+
+  // Check if user is admin
+  useEffect(() => {
+    const adminUser = localStorage.getItem('admin_user');
+    const adminToken = localStorage.getItem('admin_token');
+
+    if (!adminUser || !adminToken) {
+      navigate('/admin/login');
+      return;
+    }
+
+    try {
+      const user = JSON.parse(adminUser);
+      if (user.role !== 'admin') {
+        alert('Bạn không có quyền truy cập trang này!');
+        navigate('/');
+        return;
+      }
+      setAdminName(user.name || 'Admin User');
+    } catch (e) {
+      console.error('Error parsing admin user', e);
+      navigate('/admin/login');
+    }
+  }, [navigate]);
+
+  // Fetch product data, brands, and categories
+  useEffect(() => {
+    if (id) {
+      fetchProductData();
+      fetchBrands();
+      fetchCategories();
+    }
+  }, [id]);
+
+  const fetchProductData = async () => {
+    setFetching(true);
+    try {
+      const token = localStorage.getItem('admin_token');
+      console.log(`📡 Fetching product ${id}...`);
+      
+      // Try using getProductById from API service first
+      let product;
+      try {
+        const data = await getProductById(id);
+        console.log('📦 Product data from API service:', data);
+        product = data.product || data.data || data;
+      } catch (apiError) {
+        console.warn('⚠️ API service failed, trying direct fetch...', apiError);
+        
+        // Fallback to direct fetch with admin token
+        const response = await fetch(`${API_URL}/products/${id}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json'
+          }
+        });
+
+        console.log(`📡 Direct fetch response status: ${response.status}`);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('❌ Error response:', errorText);
+          throw new Error(`HTTP ${response.status}: Không tìm thấy sản phẩm với ID ${id}`);
+        }
+
+        const data = await response.json();
+        console.log('📦 Product data from direct fetch:', data);
+        product = data.product || data.data || data;
+      }
+
+      if (!product || !product.id) {
+        throw new Error(`Không tìm thấy sản phẩm với ID ${id}`);
+      }
+
+      console.log('✅ Product loaded:', product);
+
+      // Fill form with product data
+      setFormData({
+        name: product.name || '',
+        description: product.description || '',
+        price: product.price || '',
+        price_sale: product.price_sale || '',
+        brand_id: product.brand_id || product.brand?.id || '',
+        category_id: product.category_id || product.category?.id || '',
+        gender: product.gender || 'Nam',
+        status: product.status !== undefined ? product.status : 1,
+        variants: product.variants || []
+      });
+    } catch (error) {
+      console.error('❌ Error fetching product:', error);
+      alert(`Không thể tải thông tin sản phẩm: ${error.message}\n\nVui lòng kiểm tra:\n1. Product ID có đúng không?\n2. Backend API có đang chạy không?`);
+      navigate('/admin/products');
+    } finally {
+      setFetching(false);
+    }
+  };
+
+  const fetchBrands = async () => {
+    try {
+      const data = await getBrands();
+      setBrands(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error fetching brands:', error);
+      setBrands([]);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const data = await getCategories();
+      setCategories(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      setCategories([]);
+    }
+  };
+
+  // Menu items
+  const menuItems = [
+    { icon: <FiGrid />, label: 'Dashboard', path: '/admin/dashboard' },
+    { icon: <FiPackage />, label: 'Sản phẩm', path: '/admin/products' },
+    { icon: <FiTag />, label: 'Thương hiệu', path: '/admin/brands' },
+    { icon: <FiDroplet />, label: 'Màu sắc', path: '/admin/colors' },
+    { icon: <FiPackage />, label: 'Sizes', path: '/admin/sizes' },
+    { icon: <FiImage />, label: 'Banners', path: '/admin/banners' },
+    { icon: <FiShoppingBag />, label: 'Đơn hàng', path: '/admin/orders' },
+    { icon: <FiUsers />, label: 'Khách hàng', path: '/admin/customers' },
+    { icon: <FiStar />, label: 'Đánh giá', path: '/admin/reviews' },
+    { icon: <FiTrendingUp />, label: 'Thống kê', path: '/admin/analytics' },
+    { icon: <FiDollarSign />, label: 'Doanh thu', path: '/admin/revenue' }
+  ];
+
+  const handleLogout = () => {
+    localStorage.removeItem('admin_token');
+    localStorage.removeItem('admin_user');
+    navigate('/admin/login');
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      console.log('🚀 Bắt đầu cập nhật sản phẩm...');
+      console.log('📦 Dữ liệu sản phẩm:', formData);
+
+      // Prepare data for API
+      const productData = {
+        name: formData.name,
+        description: formData.description,
+        price: parseInt(formData.price),
+        price_sale: formData.price_sale ? parseInt(formData.price_sale) : null,
+        brand_id: parseInt(formData.brand_id),
+        category_id: parseInt(formData.category_id),
+        gender: formData.gender,
+        status: parseInt(formData.status)
+      };
+
+      // Add variants if they exist
+      if (formData.variants && formData.variants.length > 0) {
+        productData.variants = formData.variants.map(v => ({
+          id: v.id,
+          size_id: v.size_id,
+          color_id: v.color_id,
+          quantity: v.quantity
+        }));
+      }
+
+      // Use updateProduct function from API service
+      const result = await updateProduct(id, productData);
+
+      console.log('✅ Cập nhật sản phẩm thành công!', result);
+
+      alert('Cập nhật sản phẩm thành công!');
+      navigate('/admin/products');
+    } catch (error) {
+      console.error('Error:', error);
+      alert(error.message || 'Có lỗi xảy ra. Vui lòng thử lại!');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (fetching) {
+    return (
+      <>
+        <SEO title="Chỉnh sửa Sản phẩm - Admin ANKH Store" />
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+            <p className="mt-4 text-gray-500">Đang tải thông tin sản phẩm...</p>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <SEO title="Chỉnh sửa Sản phẩm - Admin ANKH Store" />
+
+      <div className="min-h-screen bg-gray-50 flex">
+        {/* Sidebar */}
+        <aside className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-white border-r border-gray-200 transition-all duration-300 flex flex-col`}>
+          <div className="p-6 border-b border-gray-200">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl flex items-center justify-center">
+                <span className="text-white font-bold text-2xl">A</span>
+              </div>
+              {sidebarOpen && (
+                <span className="font-bold text-xl text-gray-800">ANKH Store</span>
+              )}
+            </div>
+          </div>
+
+          <nav className="flex-1 p-4 space-y-1">
+            {menuItems.map((item, index) => (
+              <button
+                key={index}
+                onClick={() => {
+                  setActiveMenu(item.label);
+                  if (item.path) navigate(item.path);
+                }}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+                  activeMenu === item.label
+                    ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                <span className="text-xl">{item.icon}</span>
+                {sidebarOpen && <span className="font-medium text-sm">{item.label}</span>}
+              </button>
+            ))}
+          </nav>
+
+          <div className="p-4 border-t border-gray-200 space-y-1">
+            <button className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-100 transition-all">
+              <FiHelpCircle className="text-xl" />
+              {sidebarOpen && <span className="font-medium text-sm">Trợ giúp</span>}
+            </button>
+            <button className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-100 transition-all">
+              <FiSettings className="text-xl" />
+              {sidebarOpen && <span className="font-medium text-sm">Cài đặt</span>}
+            </button>
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-red-600 hover:bg-red-50 transition-all"
+            >
+              <FiLogOut className="text-xl" />
+              {sidebarOpen && <span className="font-medium text-sm">Đăng xuất</span>}
+            </button>
+          </div>
+        </aside>
+
+        {/* Main Content */}
+        <div className="flex-1 flex flex-col">
+          {/* Header */}
+          <header className="bg-white border-b border-gray-200 px-8 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4 flex-1">
+                <button
+                  onClick={() => setSidebarOpen(!sidebarOpen)}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <FiMenu className="text-xl text-gray-600" />
+                </button>
+                <button
+                  onClick={() => navigate('/admin/products')}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <FiArrowLeft className="text-xl text-gray-600" />
+                </button>
+                <h1 className="text-2xl font-bold text-gray-800">Chỉnh sửa Sản phẩm</h1>
+              </div>
+
+              <div className="flex items-center gap-4">
+                <button className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                  <FiBell className="text-xl text-gray-600" />
+                  <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                </button>
+                <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold">
+                  {adminName.charAt(0).toUpperCase()}
+                </div>
+              </div>
+            </div>
+          </header>
+
+          {/* Content */}
+          <main className="flex-1 p-8 overflow-y-auto bg-gray-50">
+            <form onSubmit={handleSubmit} className="max-w-4xl mx-auto">
+              <div className="bg-white rounded-xl p-8 shadow-sm border border-gray-200">
+                {/* Basic Info */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  {/* Name */}
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Tên sản phẩm <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleInputChange}
+                      required
+                      placeholder="Nike Air Zoom Pegasus 40"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
+                  </div>
+
+                  {/* Description */}
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Mô tả <span className="text-red-500">*</span>
+                    </label>
+                    <textarea
+                      name="description"
+                      value={formData.description}
+                      onChange={handleInputChange}
+                      required
+                      rows="4"
+                      placeholder="Giày chạy bộ Nike Air Zoom Pegasus 40 với công nghệ đệm zoom air..."
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
+                  </div>
+
+                  {/* Price */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Giá gốc (VNĐ) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      name="price"
+                      value={formData.price}
+                      onChange={handleInputChange}
+                      required
+                      placeholder="2600000"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
+                  </div>
+
+                  {/* Price Sale */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Giá khuyến mãi (VNĐ)
+                    </label>
+                    <input
+                      type="number"
+                      name="price_sale"
+                      value={formData.price_sale}
+                      onChange={handleInputChange}
+                      placeholder="2100000"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
+                  </div>
+
+                  {/* Brand */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Thương hiệu <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      name="brand_id"
+                      value={formData.brand_id}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    >
+                      <option value="">Chọn thương hiệu</option>
+                      {brands.map(brand => (
+                        <option key={brand.id} value={brand.id}>{brand.name}</option>
+                      ))}
+                      {brands.length === 0 && (
+                        <>
+                          <option value="1">Nike</option>
+                          <option value="2">Adidas</option>
+                          <option value="3">Puma</option>
+                          <option value="4">New Balance</option>
+                          <option value="5">Converse</option>
+                          <option value="6">Vans</option>
+                        </>
+                      )}
+                    </select>
+                  </div>
+
+                  {/* Category */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Danh mục <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      name="category_id"
+                      value={formData.category_id}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    >
+                      <option value="">Chọn danh mục</option>
+                      {categories.map(category => (
+                        <option key={category.id} value={category.id}>{category.name}</option>
+                      ))}
+                      {categories.length === 0 && (
+                        <>
+                          <option value="1">Giày Thể Thao</option>
+                          <option value="2">Giày Chạy Bộ</option>
+                          <option value="3">Giày Bóng Đá</option>
+                          <option value="4">Giày Cao Cổ</option>
+                          <option value="5">Giày Thời Trang</option>
+                        </>
+                      )}
+                    </select>
+                  </div>
+
+                  {/* Gender */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Giới tính <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      name="gender"
+                      value={formData.gender}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    >
+                      <option value="Nam">Nam</option>
+                      <option value="Nữ">Nữ</option>
+                      <option value="Unisex">Unisex</option>
+                    </select>
+                  </div>
+
+                  {/* Status */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Trạng thái
+                    </label>
+                    <select
+                      name="status"
+                      value={formData.status}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    >
+                      <option value="1">Hoạt động</option>
+                      <option value="0">Ẩn</option>
+                    </select>
+                  </div>
+
+                  {/* Variants Info */}
+                  {formData.variants && formData.variants.length > 0 && (
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Biến thể
+                      </label>
+                      <div className="p-4 bg-gray-50 rounded-lg">
+                        <p className="text-sm text-gray-600 mb-2">
+                          Sản phẩm có {formData.variants.length} biến thể. 
+                          Quản lý biến thể tại{' '}
+                          <button
+                            type="button"
+                            onClick={() => navigate(`/admin/products/${id}/variants`)}
+                            className="text-purple-600 hover:underline"
+                          >
+                            đây
+                          </button>
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Buttons */}
+                <div className="flex items-center justify-end gap-4 pt-6 border-t border-gray-200">
+                  <button
+                    type="button"
+                    onClick={() => navigate('/admin/products')}
+                    className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
+                  >
+                    <FiX />
+                    Hủy
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:shadow-lg transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <FiSave />
+                    {loading ? 'Đang lưu...' : 'Cập nhật sản phẩm'}
+                  </button>
+                </div>
+              </div>
+            </form>
+          </main>
+        </div>
+      </div>
+    </>
+  );
+};
+
+export default AdminProductEdit;
+

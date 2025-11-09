@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60">
+  <!-- Shoe icon -->
+  <g transform="translate(5, 15)">
+    <path d="M 5 25 Q 5 23 7 22 L 35 17 Q 37 17 38 19 L 40 24 Q 40 26 38 27 L 8 30 Q 5 30 5 27 Z" 
+          fill="#ff6600" opacity="0.9"/>
+    <path d="M 10 17 Q 8 15 10 13 L 28 8 Q 35 6 38 11 L 39 17 Q 39 19 37 20 L 12 24 Q 10 24 10 21 Z" 
+          fill="#ff6600"/>
+    <ellipse cx="30" cy="12" rx="3" ry="2" fill="#ffffff" opacity="0.6"/>
+  </g>
+  
+  <!-- Text: ANKH -->
+  <text x="50" y="40" font-family="Arial Black, sans-serif" font-size="32" font-weight="900" 
+        fill="#1f2937" letter-spacing="2">ANKH</text>
+  
+  <!-- Subtitle -->
+  <text x="50" y="52" font-family="Arial, sans-serif" font-size="9" 
+        fill="#6b7280" letter-spacing="3">SHOE STORE</text>
+</svg>
+

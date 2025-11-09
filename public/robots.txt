@@ -1,0 +1,44 @@
+# robots.txt for ANKH Shoe Store
+
+User-agent: *
+Allow: /
+Allow: /search
+Allow: /products
+Allow: /new-arrivals
+Allow: /sale
+Allow: /brands
+Allow: /about
+Allow: /blog
+Allow: /contact
+
+# Disallow private/sensitive pages
+Disallow: /admin/
+Disallow: /api/
+Disallow: /checkout
+Disallow: /order-success
+Disallow: /account
+Disallow: /profile
+Disallow: /profile/edit
+Disallow: /cart
+Disallow: /favorites
+Disallow: /orders
+
+# Crawl-delay
+Crawl-delay: 10
+
+# Sitemap
+Sitemap: https://ankh-store.com/sitemap.xml
+
+# Allow specific bots
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+# Block bad bots
+User-agent: SemrushBot
+User-agent: AhrefsBot
+User-agent: MJ12bot
+Disallow: /
+

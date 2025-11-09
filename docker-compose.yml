@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  ankh-store:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8000/api}
+        VITE_APP_NAME: ${VITE_APP_NAME:-ANKH Store}
+        VITE_SITE_URL: ${VITE_SITE_URL:-http://localhost}
+    container_name: ankh-store-frontend
+    ports:
+      - "80:80"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    networks:
+      - ankh-network
+    labels:
+      - "com.ankh.description=ANKH Store Frontend"
+      - "com.ankh.version=1.0.0"
+
+networks:
+  ankh-network:
+    driver: bridge
+

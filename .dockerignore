@@ -1,0 +1,54 @@
+# Node modules
+node_modules
+npm-debug.log
+
+# Build output
+dist
+dist-ssr
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Git
+.git
+.gitignore
+.github
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs
+*.log
+
+# Documentation
+*.md
+!README.md
+
+# Test files
+coverage
+.nyc_output
+test
+tests
+*.test.js
+*.spec.js
+
+# CI/CD
+.github
+netlify.toml
+vercel.json
+
+# Other
+.editorconfig
+.prettierrc
+.eslintrc*
+
