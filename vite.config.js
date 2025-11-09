@@ -24,6 +24,25 @@ export default defineConfig({
   optimizeDeps: {
     include: ['pdfmake/build/pdfmake', 'pdfmake/build/vfs_fonts'],
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // React and React DOM
+          'react-vendor': ['react', 'react-dom'],
+          // React Router
+          'router-vendor': ['react-router-dom'],
+          // React Icons (large library, split separately)
+          'icons-vendor': ['react-icons'],
+          // State management
+          'state-vendor': ['zustand'],
+          // PDF generation
+          'pdf-vendor': ['pdfmake'],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 1000, // Increase warning limit to 1MB
+  },
   server: {
     proxy: {
       '/api/provinces': {
