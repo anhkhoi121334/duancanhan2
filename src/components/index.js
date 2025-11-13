@@ -12,6 +12,8 @@ export { default as Sidebar } from './Sidebar';
 
 // UI Components
 export { default as ProductCard } from './ProductCard';
+export { default as ProductListView } from './ProductListView';
+export { default as ProductFilter } from './ProductFilter';
 export { default as Cart } from './Cart';
 export { default as SEO } from './SEO';
 export { default as ScrollToTop } from './ScrollToTop';

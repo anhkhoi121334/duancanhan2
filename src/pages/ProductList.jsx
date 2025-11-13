@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
-import { Sidebar, SEO } from '@components';
+import { Sidebar, SEO, ProductListView, ProductFilter } from '@components';
 import { getProducts, getBrands, getColors } from '@services/api';
 import { useFavoritesStore, useCartStore } from '@store';
 import { formatPrice } from '@lib/formatters';
+import { ColorDots } from '@utils/colorUtils.jsx';
 
 /**
  * Featured mapping - Map từ URL format sang API format
@@ -76,6 +77,15 @@ const ProductList = () => {
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
   const [selectedChip, setSelectedChip] = useState('');
   const [activeTab, setActiveTab] = useState(searchParams.get('is_accessory') === 'true' ? 'acc' : 'all');
+  
+  // New filter states
+  const [selectedCategories, setSelectedCategories] = useState(searchParams.get('categories')?.split(',').filter(Boolean) || []);
+  const [minPrice, setMinPrice] = useState(searchParams.get('min_price') || '');
+  const [maxPrice, setMaxPrice] = useState(searchParams.get('max_price') || '');
+  const [dateFilter, setDateFilter] = useState(searchParams.get('date_filter') || '');
+  const [dayRange, setDayRange] = useState(parseInt(searchParams.get('day_range')) || 30);
+  const [selectedPriceRange, setSelectedPriceRange] = useState(searchParams.get('price_range') || '');
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
   
   // Initialize filters from URL params on mount
   useEffect(() => {
@@ -171,6 +181,7 @@ const ProductList = () => {
         if (selectedBrand) params.brand_id = selectedBrand;
         if (selectedColor) params.color_id = String(selectedColor);
         if (selectedCategory) params.category = selectedCategory;
+        if (selectedCategories.length > 0) params.categories = selectedCategories.join(',');
         if (selectedAccessory) {
           // Use search for accessory name matching
           params.search = ACCESSORY_MAP[selectedAccessory] || selectedAccessory;
@@ -188,25 +199,28 @@ const ProductList = () => {
             params.style = selectedChip;
           }
         }
+        if (minPrice) params.min_price = minPrice;
+        if (maxPrice) params.max_price = maxPrice;
+        if (dateFilter) params.date_filter = dateFilter;
+        if (dayRange !== 30) params.day_range = dayRange;
         
         const response = await getProducts(params);
         
-        // Laravel pagination trả về nested data
-        const productsData = response.products?.data?.data || response.products?.data || [];
+        // Handle new API structure
+        const productsData = response.products?.data || response.data || [];
         
         setProducts(productsData);
         setFilters(response.filters || {});
-        setTotalPages(response.products?.last_page || 1);
+        setTotalPages(response.products?.last_page || response.last_page || 1);
         setLoading(false);
       } catch (err) {
-        console.error('Error fetching products:', err);
         setError('Không thể tải sản phẩm. Vui lòng thử lại sau.');
         setLoading(false);
       }
     };
 
     fetchProducts();
-  }, [currentPage, selectedGender, selectedBrand, selectedColor, selectedCategory, selectedAccessory, selectedFeatured, searchQuery, activeTab, selectedChip]);
+  }, [currentPage, selectedGender, selectedBrand, selectedColor, selectedCategory, selectedCategories, selectedAccessory, selectedFeatured, searchQuery, activeTab, selectedChip, minPrice, maxPrice, dateFilter, dayRange]);
 
   // Sync URL params when filters change
   useEffect(() => {
@@ -216,6 +230,7 @@ const ProductList = () => {
     if (selectedBrand) params.set('brand_id', selectedBrand);
     if (selectedColor) params.set('color_id', selectedColor);
     if (selectedCategory) params.set('category', selectedCategory);
+    if (selectedCategories.length > 0) params.set('categories', selectedCategories.join(','));
     if (selectedAccessory) params.set('accessory', selectedAccessory);
     if (selectedFeatured) {
       params.set('featured', FEATURED_API_TO_URL[selectedFeatured] || selectedFeatured);
@@ -223,13 +238,46 @@ const ProductList = () => {
     if (searchQuery && !selectedAccessory) params.set('search', searchQuery);
     if (activeTab === 'acc') params.set('is_accessory', 'true');
     if (currentPage > 1) params.set('page', currentPage.toString());
+    if (minPrice) params.set('min_price', minPrice);
+    if (maxPrice) params.set('max_price', maxPrice);
+    if (dateFilter) params.set('date_filter', dateFilter);
+    if (dayRange !== 30) params.set('day_range', dayRange.toString());
+    if (selectedPriceRange) params.set('price_range', selectedPriceRange);
     
     // Update URL without navigation
     setSearchParams(params, { replace: true });
-  }, [selectedGender, selectedBrand, selectedColor, selectedCategory, selectedAccessory, selectedFeatured, searchQuery, activeTab, currentPage, setSearchParams]);
+  }, [selectedGender, selectedBrand, selectedColor, selectedCategory, selectedCategories, selectedAccessory, selectedFeatured, searchQuery, activeTab, currentPage, minPrice, maxPrice, dateFilter, dayRange, selectedPriceRange, setSearchParams]);
 
   // formatPrice is now imported from @lib/formatters
   
+  /**
+   * Handle price input change
+   */
+  const handlePriceChange = useCallback((type, value) => {
+    if (type === 'min') {
+      setMinPrice(value);
+    } else if (type === 'max') {
+      setMaxPrice(value);
+    }
+    setCurrentPage(1); // Reset to first page when filter changes
+  }, []);
+
+  /**
+   * Handle price range selection
+   */
+  const handlePriceRangeSelect = useCallback((range) => {
+    setSelectedPriceRange(range);
+    if (range) {
+      const [min, max] = range.split('-');
+      setMinPrice(min);
+      setMaxPrice(max === '999999999' ? '' : max);
+    } else {
+      setMinPrice('');
+      setMaxPrice('');
+    }
+    setCurrentPage(1);
+  }, []);
+
   /**
    * Get product price - ưu tiên price_sale, sau đó price, cuối cùng là variant price
    * @param {Object} product - Product object
@@ -264,6 +312,17 @@ const ProductList = () => {
             onAccessorySelect={setSelectedAccessory}
             selectedFeatured={selectedFeatured}
             onFeaturedSelect={setSelectedFeatured}
+            selectedCategories={selectedCategories}
+            onCategoriesSelect={setSelectedCategories}
+            minPrice={minPrice}
+            maxPrice={maxPrice}
+            onPriceChange={handlePriceChange}
+            dateFilter={dateFilter}
+            onDateFilterChange={setDateFilter}
+            dayRange={dayRange}
+            onDayRangeChange={setDayRange}
+            selectedPriceRange={selectedPriceRange}
+            onPriceRangeSelect={handlePriceRangeSelect}
             filters={filters}
           />
 
@@ -323,6 +382,45 @@ const ProductList = () => {
             </div>
             <div className="border-b mt-2 mb-4"></div>
 
+
+            {/* View Mode Toggle */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="text-sm text-gray-600">
+                Hiển thị {products.length} sản phẩm
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600">Hiển thị:</span>
+                <div className="flex border border-gray-300 rounded-lg overflow-hidden">
+                  <button
+                    onClick={() => setViewMode('grid')}
+                    className={`px-3 py-2 text-sm ${
+                      viewMode === 'grid' 
+                        ? 'bg-[#ff6600] text-white' 
+                        : 'bg-white text-gray-700 hover:bg-gray-50'
+                    }`}
+                    title="Lưới"
+                  >
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M3 3h7v7H3V3zm0 11h7v7H3v-7zm11-11h7v7h-7V3zm0 11h7v7h-7v-7z"/>
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => setViewMode('list')}
+                    className={`px-3 py-2 text-sm ${
+                      viewMode === 'list' 
+                        ? 'bg-[#ff6600] text-white' 
+                        : 'bg-white text-gray-700 hover:bg-gray-50'
+                    }`}
+                    title="Danh sách"
+                  >
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M3 5h18v2H3V5zm0 6h18v2H3v-2zm0 6h18v2H3v-2z"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+
             {/* Error State */}
             {error && (
               <div className="text-center py-20">
@@ -343,14 +441,24 @@ const ProductList = () => {
               </div>
             )}
 
-            {/* Grid */}
+            {/* Product Display */}
             {!error && products.length > 0 && (
-              <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
-                {products.map((product, index) => {
-                const isProductFavorite = isFavorite(product.id);
-                
-                return (
-                  <article key={product.id} className={`group overflow-hidden hover:shadow-lg transition-all duration-300 relative scroll-reveal scale-in delay-${Math.min((index % 4) * 100 + 100, 400)}`}>
+              <>
+                {viewMode === 'list' ? (
+                  <ProductListView 
+                    products={products}
+                    onToggleFavorite={toggleFavorite}
+                    isFavorite={isFavorite}
+                    showToast={showToast}
+                    loading={loading}
+                  />
+                ) : (
+                  <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+                    {products.map((product, index) => {
+                    const isProductFavorite = isFavorite(product.id);
+                    
+                    return (
+                      <article key={product.id} className={`group overflow-hidden hover:shadow-lg transition-all duration-300 relative scroll-reveal scale-in delay-${Math.min((index % 4) * 100 + 100, 400)}`}>
                     <Link to={`/product/${product.slug || product.id}`} className="no-underline">
                       <div className="aspect-square p-4 relative overflow-hidden">
                         {product.is_limited_edition && (
@@ -398,7 +506,19 @@ const ProductList = () => {
                         <h3 className="text-sm font-semibold text-gray-900 mb-1 line-clamp-2 min-h-[40px] leading-snug">
                           {product.name}
                         </h3>
-                        <p className="text-xs text-gray-500 mb-2">{product.color_name || 'Black'}</p>
+                        
+                        {/* Show available colors - Above price */}
+                        {product.colors && product.colors.length > 0 ? (
+                          <ColorDots colors={product.colors} maxColors={4} />
+                        ) : (
+                          <p className="text-xs text-gray-500 mb-1">
+                            {product.color_name || 
+                             (Array.isArray(product.colors) ? 
+                               product.colors.map(c => typeof c === 'string' ? c : (c.name || c.type)).join(', ') : 
+                               'Đen, Trắng, Xám')}
+                          </p>
+                        )}
+                        
                         {getProductPrice(product) && (
                           <div className="flex items-center justify-center gap-2 flex-wrap overflow-hidden max-w-full">
                             <div className="text-base font-bold text-gray-900 break-words overflow-hidden">
@@ -411,12 +531,39 @@ const ProductList = () => {
                             )}
                           </div>
                         )}
+                        
+                        {product.description && (
+                          <p className="text-xs text-gray-600 mb-2 line-clamp-2 leading-relaxed">
+                            {product.description}
+                          </p>
+                        )}
+                        
+                        {/* Sale/Discount badges */}
+                        <div className="flex justify-center gap-1 mt-2">
+                          {product.price_sale && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                              Sale
+                            </span>
+                          )}
+                          {product.is_new && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                              Mới
+                            </span>
+                          )}
+                          {product.is_limited_edition && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                              Limited
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </Link>
                   </article>
-                );
-              })}
-              </section>
+                    );
+                  })}
+                  </section>
+                )}
+              </>
             )}
 
             {/* Pagination */}
@@ -665,7 +812,21 @@ const ProductList = () => {
                     </div>
                     <div className="p-2 text-center overflow-hidden">
                       <div className="text-[12px] font-semibold leading-4 line-clamp-2 min-h-[32px] text-gray-800">{product.name}</div>
-                      <p className="text-[10px] text-gray-500 mt-1">{product.color_name || 'Black'}</p>
+                      
+                      {/* Show available colors - Mobile - Above price */}
+                      {product.colors && product.colors.length > 0 ? (
+                        <div className="mt-1">
+                          <ColorDots colors={product.colors} maxColors={3} />
+                        </div>
+                      ) : (
+                        <p className="text-[10px] text-gray-500 mt-1">
+                          {product.color_name || 
+                           (Array.isArray(product.colors) ? 
+                             product.colors.map(c => typeof c === 'string' ? c : (c.name || c.type)).join(', ') : 
+                             'Đen, Trắng, Xám')}
+                        </p>
+                      )}
+                      
                       {getProductPrice(product) && (
                         <div className="flex items-center justify-center gap-1 mt-1 flex-wrap overflow-hidden max-w-full">
                           <div className="text-[12px] font-bold text-gray-900 break-words overflow-hidden">
@@ -678,6 +839,26 @@ const ProductList = () => {
                           )}
                         </div>
                       )}
+                      
+                      {product.description && (
+                        <p className="text-[10px] text-gray-600 mt-1 line-clamp-1 leading-relaxed">
+                          {product.description}
+                        </p>
+                      )}
+                      
+                      {/* Sale/Discount badges mobile */}
+                      <div className="flex justify-center gap-1 mt-1">
+                        {product.price_sale && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium bg-red-100 text-red-800">
+                            Sale
+                          </span>
+                        )}
+                        {product.is_new && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium bg-green-100 text-green-800">
+                            Mới
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </Link>
                   </div>

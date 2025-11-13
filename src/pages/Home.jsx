@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { getBanners } from '@services/api';
+import { getBanners, getHomeData } from '@services/api';
 import { useFavoritesStore, useCartStore } from '@store';
 import { SEO, TypewriterText } from '@components';
 import { formatPrice } from '@lib/formatters';
+import { ColorDots } from '@utils/colorUtils.jsx';
 import collection1 from '@assets/collection1.jpg';
 import collection2 from '@assets/collection2.jpg';
 import category1 from '@assets/category1.jpg';
@@ -90,62 +91,25 @@ const Home = () => {
 
   // Fetch home page data from API
   useEffect(() => {
-    const fetchHomeData = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
         setError(null);
         
-        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
-        const response = await fetch(`${API_URL}/home`);
-        
-        if (!response.ok) {
-          throw new Error('Không thể tải dữ liệu trang chủ');
-        }
-        
-        const data = await response.json();
+        const data = await getHomeData();
         
         setCategories(data.categories || []);
         setProductsHot(data.products_hot || []);
         setProductsSale(data.products_sale || []);
         setLoading(false);
       } catch (err) {
-        // Use mock data as fallback - không hiển thị error
-        const mockCategories = [
-          { id: 1, name: 'Giày Nam', image: 'https://images.unsplash.com/photo-1460353581641-37baddab0fa2?w=400', slug: 'giay-nam' },
-          { id: 2, name: 'Giày Nữ', image: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=400', slug: 'giay-nu' },
-          { id: 3, name: 'Phụ kiện', image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400', slug: 'phu-kien' }
-        ];
-        
-        const mockProducts = [
-          {
-            id: 1,
-            name: 'Nike Air Max 270',
-            slug: 'nike-air-max-270',
-            price: 3500000,
-            price_sale: 2800000,
-            image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500',
-            brand: 'Nike'
-          },
-          {
-            id: 2,
-            name: 'Adidas Ultraboost',
-            slug: 'adidas-ultraboost',
-            price: 4200000,
-            price_sale: 3500000,
-            image: 'https://images.unsplash.com/photo-1608231387042-66d1773070a5?w=500',
-            brand: 'Adidas'
-          }
-        ];
-        
-        setCategories(mockCategories);
-        setProductsHot(mockProducts);
-        setProductsSale(mockProducts);
+        console.error('Error fetching home data:', err);
+        setError('Không thể tải dữ liệu trang chủ');
         setLoading(false);
-        // Không set error để app vẫn hiển thị được
       }
     };
 
-    fetchHomeData();
+    fetchData();
   }, []);
 
   // Loading State
@@ -425,9 +389,18 @@ const Home = () => {
                     <h3 className="text-sm font-semibold text-gray-900 mb-1 line-clamp-2 min-h-[40px] leading-snug">
                       {product.name}
                     </h3>
-                    <p className="text-xs text-gray-500 mb-2">{product.color_name || 'Black'}</p>
+                    
+                    {/* Show available colors */}
+                    {product.colors && product.colors.length > 0 ? (
+                      <ColorDots colors={product.colors} maxColors={4} />
+                    ) : (
+                      <p className="text-xs text-gray-500 mb-2">
+                        {product.color_name || product.colors?.map(c => c.name).join(', ') || 'Đen, Trắng, Xám'}
+                      </p>
+                    )}
+                    
                     {formatPrice(getProductPrice(product)) && (
-                      <div className="text-base font-bold text-gray-900 break-words overflow-hidden max-w-full">
+                      <div className="text-base font-bold text-gray-900 break-words overflow-hidden max-w-full mt-2">
                         {formatPrice(getProductPrice(product))}
                       </div>
                     )}
@@ -503,9 +476,18 @@ const Home = () => {
                       <h3 className="text-sm font-semibold text-gray-900 mb-1 line-clamp-2 min-h-[40px] leading-snug">
                         {product.name}
                       </h3>
-                      <p className="text-xs text-gray-500 mb-3">{product.color_name || 'Black'}</p>
+                      
+                      {/* Show available colors */}
+                      {product.colors && product.colors.length > 0 ? (
+                        <ColorDots colors={product.colors} maxColors={4} />
+                      ) : (
+                        <p className="text-xs text-gray-500 mb-2">
+                          {product.color_name || product.colors?.map(c => c.name).join(', ') || 'Đen, Trắng, Xám'}
+                        </p>
+                      )}
+                      
                       {getProductPrice(product) && (
-                        <div className="flex items-center justify-center gap-2 flex-wrap overflow-hidden max-w-full">
+                        <div className="flex items-center justify-center gap-2 flex-wrap overflow-hidden max-w-full mt-3">
                           <div className="text-base font-bold text-gray-900 break-words overflow-hidden">
                             {formatPrice(getProductPrice(product))}
                           </div>

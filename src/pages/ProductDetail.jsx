@@ -466,22 +466,7 @@ const ProductDetail = () => {
     };
   }, [product, selectedVariant]);
 
-  // Bỏ loading state - load data ngầm
-
-  // Error State
-  if (error || !product) {
-    return (
-      <div className="max-w-[1200px] mx-auto px-4 py-20">
-        <div className="text-center">
-          <p className="text-red-600 text-lg mb-6">{error || 'Không tìm thấy sản phẩm'}</p>
-          <Link to="/products" className="inline-block bg-[#ff6600] text-white px-8 py-3 rounded-lg font-bold hover:bg-orange-700 transition">
-            Quay lại danh sách sản phẩm
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
+  // Define callbacks before any conditional returns to follow Rules of Hooks
   const handleAddToCart = useCallback(async () => {
     if (!selectedSize) {
       showToast('Vui lòng chọn size!', 'error');
@@ -658,6 +643,20 @@ const ProductDetail = () => {
 
   // Get current price (memoized, only recalculates when product or selectedVariant changes)
   const currentPrice = getCurrentPrice;
+
+  // Error State - after all hooks are defined
+  if (error || !product) {
+    return (
+      <div className="max-w-[1200px] mx-auto px-4 py-20">
+        <div className="text-center">
+          <p className="text-red-600 text-lg mb-6">{error || 'Không tìm thấy sản phẩm'}</p>
+          <Link to="/products" className="inline-block bg-[#ff6600] text-white px-8 py-3 rounded-lg font-bold hover:bg-orange-700 transition">
+            Quay lại danh sách sản phẩm
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>

@@ -269,7 +269,6 @@ export const getProducts = async (params = {}) => {
     const response = await fetchWithTimeout(url);
     return await handleResponse(response);
   } catch (error) {
-    console.error('❌ [API] Error fetching products:', error.message);
     throw error;
   }
 };
@@ -627,9 +626,47 @@ export const getPromotions = async () => {
     }
     return await handleResponse(response);
   } catch (error) {
-    console.error('❌ [API] Error fetching promotions:', error.message);
     // Trả về array rỗng thay vì throw error
     return [];
+  }
+};
+
+// ========== HOME API ==========
+
+/**
+ * Lấy dữ liệu trang chủ (categories, products_hot, products_sale)
+ * @returns {Promise<Object>} Dữ liệu trang chủ với format:
+ * {
+ *   categories: Array,
+ *   products_hot: Array,
+ *   products_sale: Array
+ * }
+ */
+export const getHomeData = async () => {
+  try {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/home`);
+    const data = await handleResponse(response);
+    
+    // Validate và format dữ liệu trả về
+    return {
+      categories: Array.isArray(data.categories) ? data.categories : [],
+      products_hot: Array.isArray(data.products_hot) ? data.products_hot : [],
+      products_sale: Array.isArray(data.products_sale) ? data.products_sale : []
+    };
+  } catch (error) {
+    
+    // Fallback data nếu API không khả dụng
+    const fallbackData = {
+      categories: [
+        { id: 1, name: 'Giày Nam', slug: 'giay-nam', image: 'https://images.unsplash.com/photo-1460353581641-37baddab0fa2?w=400' },
+        { id: 2, name: 'Giày Nữ', slug: 'giay-nu', image: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=400' },
+        { id: 3, name: 'Phụ kiện', slug: 'phu-kien', image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400' }
+      ],
+      products_hot: [],
+      products_sale: []
+    };
+    
+    return fallbackData;
   }
 };
 

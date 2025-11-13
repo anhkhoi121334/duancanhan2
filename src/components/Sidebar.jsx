@@ -111,7 +111,18 @@ const Sidebar = ({
   onAccessorySelect,
   selectedFeatured,
   onFeaturedSelect,
-  filters = {}
+  selectedCategories = [],
+  onCategoriesSelect,
+  minPrice = '',
+  maxPrice = '',
+  onPriceChange,
+  filters = {},
+  dateFilter = '',
+  onDateFilterChange,
+  dayRange = 30,
+  onDayRangeChange,
+  selectedPriceRange = '',
+  onPriceRangeSelect
 }) => {
   /**
    * Map tên màu tiếng Việt sang hex code
@@ -148,6 +159,33 @@ const Sidebar = ({
     onColorSelect(currentColor === newColor ? '' : newColor);
   };
 
+  /**
+   * Handle category checkbox change for multiple selection
+   */
+  const handleCategoryCheckboxChange = (categoryValue) => {
+    if (!onCategoriesSelect) return;
+    
+    const isSelected = selectedCategories.includes(categoryValue);
+    let newCategories;
+    
+    if (isSelected) {
+      newCategories = selectedCategories.filter(cat => cat !== categoryValue);
+    } else {
+      newCategories = [...selectedCategories, categoryValue];
+    }
+    
+    onCategoriesSelect(newCategories);
+  };
+
+  /**
+   * Handle price input change
+   */
+  const handlePriceInputChange = (type, value) => {
+    if (onPriceChange) {
+      onPriceChange(type, value);
+    }
+  };
+
   const handleClearAllFilters = () => {
     onGenderSelect('');
     onBrandSelect('');
@@ -155,93 +193,91 @@ const Sidebar = ({
     onCategorySelect('');
     onAccessorySelect('');
     onFeaturedSelect('');
+    if (onCategoriesSelect) onCategoriesSelect([]);
+    if (onPriceChange) {
+      onPriceChange('min', '');
+      onPriceChange('max', '');
+    }
+    if (onDateFilterChange) onDateFilterChange('');
+    if (onDayRangeChange) onDayRangeChange(30);
+    if (onPriceRangeSelect) onPriceRangeSelect('');
   };
 
   // Check if any filter is active
-  const hasActiveFilters = selectedGender || selectedBrand || selectedColor || selectedCategory || selectedAccessory || selectedFeatured;
+  const hasActiveFilters = selectedGender || selectedBrand || selectedColor || selectedCategory || selectedAccessory || selectedFeatured || 
+    (selectedCategories && selectedCategories.length > 0) || minPrice || maxPrice || dateFilter || dayRange !== 30 || selectedPriceRange;
 
   return (
-    <aside className="col-span-3 space-y-6 text-[14px] leading-6">
-      {/* Clear Filters Button */}
-      {hasActiveFilters && (
-        <div className="bg-[#fff8f0] border border-[#ff6600] rounded-lg p-3">
-          <button
-            onClick={handleClearAllFilters}
-            className="w-full text-[#ff6600] font-semibold text-sm hover:bg-[#ff6600] hover:text-white transition-colors py-2 px-3 rounded"
-          >
-            ✕ Xóa tất cả bộ lọc
-          </button>
-        </div>
-      )}
+    <aside className="col-span-3 space-y-4 text-[14px] leading-6">
 
       <section className="bg-white">
         <h3 className="text-[#ff6600] font-bold uppercase tracking-wide text-[13px] text-center mb-3">
-          HỢP TÁC
+          DANH MỤC SẢN PHẨM
         </h3>
         <div className="border-t border-gray-300"></div>
-        <div className="mt-3 grid grid-cols-2 gap-y-2 text-gray-700">
+        <div className="mt-3 space-y-3 text-gray-700">
           {CATEGORY_OPTIONS.map((category) => (
-            <React.Fragment key={category.value}>
-              <div className="flex items-center justify-between pr-2">
-                <button 
-                  onClick={() => handleCategoryClick(category.value)}
-                  className={`hover:text-[#ff6600] no-underline text-left ${
-                    selectedCategory === category.value 
-                      ? 'text-[#ff6600] font-semibold' 
-                      : 'text-gray-700'
-                  }`}
-                >
+            <label key={category.value} className="flex items-center gap-3 cursor-pointer group p-2 rounded-lg hover:bg-orange-50 transition-colors">
+              <input
+                type="checkbox"
+                checked={selectedCategories.includes(category.value)}
+                onChange={() => handleCategoryCheckboxChange(category.value)}
+                className="w-4 h-4 text-[#ff6600] border-2 border-gray-300 rounded focus:ring-2 focus:ring-[#ff6600] focus:ring-offset-1 cursor-pointer accent-[#ff6600]"
+              />
+              <div className="flex items-center gap-2 flex-1">
+                <span className={`text-sm font-medium transition-colors ${
+                  selectedCategories.includes(category.value)
+                    ? 'text-[#ff6600] font-bold' 
+                    : 'text-gray-700 group-hover:text-[#ff6600]'
+                }`}>
                   {category.labelEn}
-                </button>
-                <span className="text-gray-400">|</span>
-              </div>
-              <button 
-                onClick={() => handleCategoryClick(category.value)}
-                className={`hover:text-[#ff6600] pl-2 no-underline text-left ${
-                  selectedCategory === category.value 
+                </span>
+                <span className="text-gray-300 font-light">|</span>
+                <span className={`text-sm transition-colors ${
+                  selectedCategories.includes(category.value)
                     ? 'text-[#ff6600] font-semibold' 
-                    : 'text-gray-700'
-                }`}
-              >
-                {category.labelVi}
-              </button>
-            </React.Fragment>
+                    : 'text-gray-600 group-hover:text-[#ff6600]'
+                }`}>
+                  {category.labelVi}
+                </span>
+              </div>
+            </label>
           ))}
         </div>
         <div className="mt-3 border-t border-gray-300"></div>
       </section>
 
       <section>
-        <div className="border-t border-dashed border-gray-300 my-3"></div>
+        <div className="border-t border-dashed border-gray-300 my-2"></div>
         <h3 className="text-[#ff6600] font-bold uppercase tracking-wide text-[13px]">GIỚI TÍNH</h3>
-        <div className="mt-3 space-y-2">
-          <label className="flex items-center gap-2 cursor-pointer group">
+        <div className="mt-3 space-y-3">
+          <label className="flex items-center gap-3 cursor-pointer group p-2 rounded-lg hover:bg-orange-50 transition-colors">
             <input
               type="radio"
               name="gender"
               checked={selectedGender === 'Nam'}
               onChange={() => handleGenderClick('Nam')}
-              className="w-4 h-4 text-[#ff6600] border-gray-300 focus:ring-[#ff6600] cursor-pointer"
+              className="w-4 h-4 text-[#ff6600] border-2 border-gray-300 focus:ring-2 focus:ring-[#ff6600] focus:ring-offset-1 cursor-pointer accent-[#ff6600]"
             />
-            <span className={`text-sm transition-colors ${
+            <span className={`text-sm font-medium transition-colors ${
               selectedGender === 'Nam' 
-                ? 'text-[#ff6600] font-semibold' 
+                ? 'text-[#ff6600] font-bold' 
                 : 'text-gray-700 group-hover:text-[#ff6600]'
             }`}>
               Nam
             </span>
           </label>
-          <label className="flex items-center gap-2 cursor-pointer group">
+          <label className="flex items-center gap-3 cursor-pointer group p-2 rounded-lg hover:bg-orange-50 transition-colors">
             <input
               type="radio"
               name="gender"
               checked={selectedGender === 'Nữ'}
               onChange={() => handleGenderClick('Nữ')}
-              className="w-4 h-4 text-[#ff6600] border-gray-300 focus:ring-[#ff6600] cursor-pointer"
+              className="w-4 h-4 text-[#ff6600] border-2 border-gray-300 focus:ring-2 focus:ring-[#ff6600] focus:ring-offset-1 cursor-pointer accent-[#ff6600]"
             />
-            <span className={`text-sm transition-colors ${
+            <span className={`text-sm font-medium transition-colors ${
               selectedGender === 'Nữ' 
-                ? 'text-[#ff6600] font-semibold' 
+                ? 'text-[#ff6600] font-bold' 
                 : 'text-gray-700 group-hover:text-[#ff6600]'
             }`}>
               Nữ
@@ -251,7 +287,7 @@ const Sidebar = ({
       </section>
 
       <section>
-        <div className="border-t border-dashed border-gray-300 my-3"></div>
+        <div className="border-t border-dashed border-gray-300 my-2"></div>
         <h3 className="text-[#ff6600] font-bold uppercase tracking-wide text-[13px]">DANH SÁCH NỔI BẬT</h3>
         <ul className="mt-2 space-y-1 text-gray-700 list-none pl-0">
           {FEATURED_OPTIONS.map((option) => (
@@ -273,7 +309,7 @@ const Sidebar = ({
       </section>
 
       <section>
-        <div className="border-t border-dashed border-gray-300 my-3"></div>
+        <div className="border-t border-dashed border-gray-300 my-2"></div>
         <h3 className="text-[#ff6600] font-bold uppercase tracking-wide text-[13px]">THƯƠNG HIỆU</h3>
         <ul className="mt-2 space-y-1 text-gray-700 list-none pl-0">
           {brands.length > 0 ? (
@@ -298,7 +334,7 @@ const Sidebar = ({
       </section>
 
       <section>
-        <div className="border-t border-dashed border-gray-300 my-3"></div>
+        <div className="border-t border-dashed border-gray-300 my-2"></div>
         <h3 className="text-[#ff6600] font-bold uppercase tracking-wide text-[13px]">PHỤ KIỆN</h3>
         <ul className="mt-2 space-y-1 text-gray-700 list-none pl-0">
           {ACCESSORY_OPTIONS.map((accessory) => (
@@ -319,7 +355,7 @@ const Sidebar = ({
       </section>
 
       <section>
-        <div className="border-t border-dashed border-gray-300 my-3"></div>
+        <div className="border-t border-dashed border-gray-300 my-2"></div>
         <h3 className="text-[#ff6600] font-bold uppercase tracking-wide text-[13px]">MÀU SẮC</h3>
         <div className="mt-2 grid grid-cols-8 gap-2">
           {colors.length > 0 ? (
@@ -363,6 +399,106 @@ const Sidebar = ({
               );
             })
           )}
+        </div>
+      </section>
+
+
+      {/* Quick Price Range Selection */}
+      <section>
+        <div className="border-t border-dashed border-gray-300 my-2"></div>
+        <h3 className="text-[#ff6600] font-bold uppercase tracking-wide text-[13px]">CHỌN THEO GIÁ</h3>
+        <div className="mt-2 space-y-1">
+          {[
+            { label: 'Dưới 500k', value: '0-500000' },
+            { label: '500k - 1tr', value: '500000-1000000' },
+            { label: '1tr - 2tr', value: '1000000-2000000' },
+            { label: '2tr - 5tr', value: '2000000-5000000' },
+            { label: 'Trên 5tr', value: '5000000-999999999' }
+          ].map((range) => (
+            <button
+              key={range.value}
+              onClick={() => onPriceRangeSelect && onPriceRangeSelect(selectedPriceRange === range.value ? '' : range.value)}
+              className={`w-full text-left px-2 py-1.5 rounded text-xs transition-colors ${
+                selectedPriceRange === range.value
+                  ? 'bg-[#ff6600] text-white'
+                  : 'bg-gray-50 text-gray-700 hover:bg-[#fff8f0] hover:text-[#ff6600]'
+              }`}
+            >
+              {range.label}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/* Date Filter for Product Quantity Check */}
+      <section>
+        <div className="border-t border-dashed border-gray-300 my-2"></div>
+        <h3 className="text-[#ff6600] font-bold uppercase tracking-wide text-[13px]">LỌC THEO NGÀY</h3>
+        <div className="mt-2 space-y-2">
+          <div>
+            <label className="block text-xs text-gray-600 mb-1">Từ ngày:</label>
+            <input
+              type="date"
+              value={dateFilter}
+              onChange={(e) => onDateFilterChange && onDateFilterChange(e.target.value)}
+              className="w-full px-2 py-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-[#ff6600] focus:border-transparent"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-600 mb-1">Số ngày:</label>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min="1"
+                max="365"
+                value={dayRange}
+                onChange={(e) => onDayRangeChange && onDayRangeChange(parseInt(e.target.value) || 30)}
+                className="flex-1 px-2 py-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-[#ff6600] focus:border-transparent"
+              />
+              <span className="text-xs text-gray-500">ngày</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Sale & Discount Section */}
+      <section>
+        <div className="border-t border-dashed border-gray-300 my-2"></div>
+        <h3 className="text-[#ff6600] font-bold uppercase tracking-wide text-[13px]">KHUYẾN MÃI</h3>
+        <div className="mt-2 space-y-1">
+          <button
+            onClick={() => onFeaturedSelect && onFeaturedSelect(selectedFeatured === 'sale' ? '' : 'sale')}
+            className={`w-full text-left px-2 py-1.5 rounded text-xs transition-colors flex items-center gap-2 ${
+              selectedFeatured === 'sale'
+                ? 'bg-red-500 text-white'
+                : 'bg-gray-50 text-gray-700 hover:bg-red-50 hover:text-red-600'
+            }`}
+          >
+            <span className="text-sm">🏷️</span>
+            <span>Sản phẩm đang Sale</span>
+          </button>
+          <button
+            onClick={() => onFeaturedSelect && onFeaturedSelect(selectedFeatured === 'discount' ? '' : 'discount')}
+            className={`w-full text-left px-2 py-1.5 rounded text-xs transition-colors flex items-center gap-2 ${
+              selectedFeatured === 'discount'
+                ? 'bg-orange-500 text-white'
+                : 'bg-gray-50 text-gray-700 hover:bg-orange-50 hover:text-orange-600'
+            }`}
+          >
+            <span className="text-sm">💸</span>
+            <span>Sản phẩm giảm giá</span>
+          </button>
+          <button
+            onClick={() => onFeaturedSelect && onFeaturedSelect(selectedFeatured === 'new' ? '' : 'new')}
+            className={`w-full text-left px-2 py-1.5 rounded text-xs transition-colors flex items-center gap-2 ${
+              selectedFeatured === 'new'
+                ? 'bg-green-500 text-white'
+                : 'bg-gray-50 text-gray-700 hover:bg-green-50 hover:text-green-600'
+            }`}
+          >
+            <span className="text-sm">🆕</span>
+            <span>Sản phẩm mới</span>
+          </button>
         </div>
       </section>
     </aside>

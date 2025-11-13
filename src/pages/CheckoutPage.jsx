@@ -400,7 +400,7 @@ const CheckoutPage = () => {
 
         // Fallback: Try API if fullLocationData not available
         try {
-            console.log(`🔄 Fetching wards for district ${districtCode} from API...`);
+            // Fetching wards for district from API
             const data = await getWards(districtCode);
             
             if (data && data.length > 0) {
@@ -409,13 +409,12 @@ const CheckoutPage = () => {
                     name: ward.name || ward.ward_name
                 }));
                 setWards(normalizedWards);
-                console.log('✅ Loaded', normalizedWards.length, 'wards from API');
             } else {
-                console.log('⚠️ No wards available, user must input manually');
+                // No wards available, user must input manually
             }
-        } catch (error) {
-            console.error('❌ Error fetching wards:', error);
-            console.log('⚠️ User must input ward manually');
+        } catch (err) {
+            setError('Không thể tải sản phẩm. Vui lòng thử lại sau.');
+            setLoading(false);
         }
     };
 
@@ -1089,16 +1088,16 @@ const CheckoutPage = () => {
                 <form onSubmit={handleSubmit}>
                     <div className="grid lg:grid-cols-3 gap-6">
                         {/* Left Column - Shipping & Payment Info */}
-                        <div className="lg:col-span-2 space-y-6">
+                        <div className="lg:col-span-2 space-y-4">
                             {/* THÔNG TIN GIAO HÀNG */}
                             <div className="bg-white rounded-lg p-4 shadow-md border border-gray-200">
                                 <h2 className="text-base font-black uppercase text-gray-900 tracking-tight mb-1 pb-2 border-b-2 border-gray-900">
                                     THÔNG TIN GIAO HÀNG
                                 </h2>
 
-                                <div className="space-y-4 mt-5">
+                                <div className="space-y-2 mt-2">
                                     <div>
-                                        <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-1">
+                                        <label htmlFor="fullName" className="block text-xs font-medium text-gray-700 mb-0.5">
                                             Họ và Tên <span className="text-red-500">*</span>
                                         </label>
                                         <input
@@ -1110,7 +1109,7 @@ const CheckoutPage = () => {
                                             onBlur={handleBlur}
                                             placeholder="Nhập họ và tên"
                                             autoComplete="name"
-                                            className={`w-full border rounded px-4 py-3 text-sm focus:outline-none focus:ring-1 transition-colors ${
+                                            className={`w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 transition-colors ${
                                                 touched.fullName && errors.fullName
                                                     ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
                                                     : 'border-gray-300 focus:border-[#ff6600] focus:ring-[#ff6600]'
@@ -1127,7 +1126,7 @@ const CheckoutPage = () => {
                                     </div>
 
                                     <div>
-                                        <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
+                                        <label htmlFor="phone" className="block text-xs font-medium text-gray-700 mb-0.5">
                                             Số điện thoại <span className="text-red-500">*</span>
                                         </label>
                                         <input
@@ -1139,7 +1138,7 @@ const CheckoutPage = () => {
                                             onBlur={handleBlur}
                                             placeholder="0912345678 hoặc +84912345678"
                                             autoComplete="tel"
-                                            className={`w-full border rounded px-4 py-3 text-sm focus:outline-none focus:ring-1 transition-colors ${
+                                            className={`w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 transition-colors ${
                                                 touched.phone && errors.phone
                                                     ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
                                                     : 'border-gray-300 focus:border-[#ff6600] focus:ring-[#ff6600]'
@@ -1156,7 +1155,7 @@ const CheckoutPage = () => {
                                     </div>
 
                                     <div>
-                                        <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                                        <label htmlFor="email" className="block text-xs font-medium text-gray-700 mb-0.5">
                                             Email <span className="text-gray-400 text-xs">(Tùy chọn)</span>
                                         </label>
                                         <input
@@ -1168,7 +1167,7 @@ const CheckoutPage = () => {
                                             onBlur={handleBlur}
                                             placeholder="example@email.com"
                                             autoComplete="email"
-                                            className={`w-full border rounded px-4 py-3 text-sm focus:outline-none focus:ring-1 transition-colors ${
+                                            className={`w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 transition-colors ${
                                                 touched.email && errors.email
                                                     ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
                                                     : 'border-gray-300 focus:border-[#ff6600] focus:ring-[#ff6600]'
@@ -1184,7 +1183,7 @@ const CheckoutPage = () => {
                                     </div>
 
                                     <div>
-                                        <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">
+                                        <label htmlFor="address" className="block text-xs font-medium text-gray-700 mb-0.5">
                                             Địa chỉ <span className="text-red-500">*</span>
                                         </label>
                                         <input
@@ -1196,7 +1195,7 @@ const CheckoutPage = () => {
                                             onBlur={handleBlur}
                                             placeholder="Số nhà, tên đường"
                                             autoComplete="street-address"
-                                            className={`w-full border rounded px-4 py-3 text-sm focus:outline-none focus:ring-1 transition-colors ${
+                                            className={`w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 transition-colors ${
                                                 touched.address && errors.address
                                                     ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
                                                     : 'border-gray-300 focus:border-[#ff6600] focus:ring-[#ff6600]'
@@ -1213,7 +1212,7 @@ const CheckoutPage = () => {
                                     </div>
 
                                     <div>
-                                        <label htmlFor="province" className="block text-sm font-medium text-gray-700 mb-1">
+                                        <label htmlFor="province" className="block text-xs font-medium text-gray-700 mb-0.5">
                                             Tỉnh/Thành Phố <span className="text-red-500">*</span>
                                         </label>
                                         <div className="relative">
@@ -1222,7 +1221,7 @@ const CheckoutPage = () => {
                                                 name="province"
                                                 value={formData.province}
                                                 onChange={handleProvinceChange}
-                                                className="w-full border border-gray-300 rounded px-4 py-3 text-sm focus:outline-none focus:border-[#ff6600] focus:ring-1 focus:ring-[#ff6600] appearance-none bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                                className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-[#ff6600] focus:ring-1 focus:ring-[#ff6600] appearance-none bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
                                                 disabled={loadingProvinces}
                                                 required
                                                 autoComplete="address-level1"
@@ -1245,7 +1244,7 @@ const CheckoutPage = () => {
                                     <div className="grid grid-cols-2 gap-4">
                                         {/* District - Select nếu có static data, text input nếu không */}
                                         <div>
-                                            <label htmlFor="district" className="block text-sm font-medium text-gray-700 mb-1">
+                                            <label htmlFor="district" className="block text-xs font-medium text-gray-700 mb-0.5">
                                                 Quận/Huyện
                                             </label>
                                             {districts.length > 0 ? (
@@ -1255,7 +1254,7 @@ const CheckoutPage = () => {
                                                         name="district"
                                                         value={formData.district}
                                                         onChange={handleDistrictChange}
-                                                        className="w-full border border-gray-300 rounded px-4 py-3 text-sm focus:outline-none focus:border-[#ff6600] focus:ring-1 focus:ring-[#ff6600] appearance-none bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                                        className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-[#ff6600] focus:ring-1 focus:ring-[#ff6600] appearance-none bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
                                                         disabled={!formData.province}
                                                         autoComplete="address-level2"
                                                     >
@@ -1279,7 +1278,7 @@ const CheckoutPage = () => {
                                                     onChange={handleInputChange}
                                                     placeholder="Nhập Quận/Huyện"
                                                     autoComplete="address-level2"
-                                                    className="w-full border border-gray-300 rounded px-4 py-3 text-sm focus:outline-none focus:border-[#ff6600] focus:ring-1 focus:ring-[#ff6600] disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                                    className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-[#ff6600] focus:ring-1 focus:ring-[#ff6600] disabled:bg-gray-100 disabled:cursor-not-allowed"
                                                     disabled={!formData.province}
                                                 />
                                             )}
@@ -1287,7 +1286,7 @@ const CheckoutPage = () => {
 
                                         {/* Ward - Text input vì không có static data */}
                                         <div>
-                                            <label htmlFor="ward" className="block text-sm font-medium text-gray-700 mb-1">
+                                            <label htmlFor="ward" className="block text-xs font-medium text-gray-700 mb-0.5">
                                                 Xã/Phường
                                             </label>
                                             <input
@@ -1298,7 +1297,7 @@ const CheckoutPage = () => {
                                                 onChange={handleInputChange}
                                                 placeholder="Nhập Xã/Phường"
                                                 autoComplete="address-level3"
-                                                className="w-full border border-gray-300 rounded px-4 py-3 text-sm focus:outline-none focus:border-[#ff6600] focus:ring-1 focus:ring-[#ff6600] disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                                className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-[#ff6600] focus:ring-1 focus:ring-[#ff6600] disabled:bg-gray-100 disabled:cursor-not-allowed"
                                                 disabled={!formData.district}
                                             />
                                         </div>
@@ -1320,13 +1319,13 @@ const CheckoutPage = () => {
                             </div>
 
                             {/* PHƯƠNG THỨC GIAO HÀNG */}
-                            <div className="bg-white rounded-lg p-4 shadow-md border border-gray-200">
-                                <h2 className="text-base font-black uppercase text-gray-900 tracking-tight mb-1 pb-2 border-b-2 border-gray-900">
+                            <div className="bg-white rounded-lg p-3 shadow-md border border-gray-200">
+                                <h2 className="text-sm font-black uppercase text-gray-900 tracking-tight mb-1 pb-1 border-b-2 border-gray-900">
                                     PHƯƠNG THỨC GIAO HÀNG
                                 </h2>
 
-                                <div className="space-y-3 mt-5">
-                                    <label className={`flex items-center justify-between p-4 border-2 rounded cursor-pointer transition-all ${shippingMethod === 'standard' ? 'border-[#ff6600] bg-orange-50' : 'border-gray-300 hover:border-gray-400'}`}>
+                                <div className="space-y-2 mt-3">
+                                    <label className={`flex items-center justify-between p-3 border-2 rounded cursor-pointer transition-all ${shippingMethod === 'standard' ? 'border-[#ff6600] bg-orange-50' : 'border-gray-300 hover:border-gray-400'}`}>
                                         <div className="flex items-center gap-3">
                                             <input
                                                 type="radio"
@@ -1341,7 +1340,7 @@ const CheckoutPage = () => {
                                         <span className="text-sm font-bold text-gray-900">0 VND</span>
                                     </label>
 
-                                    <label className={`flex items-center justify-between p-4 border-2 rounded cursor-pointer transition-all ${shippingMethod === 'express' ? 'border-[#ff6600] bg-orange-50' : 'border-gray-300 hover:border-gray-400'}`}>
+                                    <label className={`flex items-center justify-between p-3 border-2 rounded cursor-pointer transition-all ${shippingMethod === 'express' ? 'border-[#ff6600] bg-orange-50' : 'border-gray-300 hover:border-gray-400'}`}>
                                         <div className="flex items-center gap-3">
                                             <input
                                                 type="radio"
@@ -1359,13 +1358,13 @@ const CheckoutPage = () => {
                             </div>
 
                             {/* PHƯƠNG THỨC THANH TOÁN */}
-                            <div className="bg-white rounded-lg p-4 shadow-md border border-gray-200">
-                                <h2 className="text-base font-black uppercase text-gray-900 tracking-tight mb-1 pb-2 border-b-2 border-gray-900">
+                            <div className="bg-white rounded-lg p-3 shadow-md border border-gray-200">
+                                <h2 className="text-sm font-black uppercase text-gray-900 tracking-tight mb-1 pb-1 border-b-2 border-gray-900">
                                     PHƯƠNG THỨC THANH TOÁN
                                 </h2>
 
-                                <div className="space-y-3 mt-5">
-                                    <label className={`flex items-center p-4 border-2 rounded cursor-pointer transition-all ${paymentMethod === 'cod' ? 'border-[#ff6600] bg-orange-50' : 'border-gray-300 hover:border-gray-400'}`}>
+                                <div className="space-y-2 mt-3">
+                                    <label className={`flex items-center p-3 border-2 rounded cursor-pointer transition-all ${paymentMethod === 'cod' ? 'border-[#ff6600] bg-orange-50' : 'border-gray-300 hover:border-gray-400'}`}>
                                         <input
                                             type="radio"
                                             name="payment"
@@ -1377,7 +1376,7 @@ const CheckoutPage = () => {
                                         <span className="text-sm text-gray-900">Thanh toán trực tiếp khi giao hàng</span>
                                     </label>
 
-                                    <label className={`flex items-center p-4 border-2 rounded cursor-pointer transition-all ${paymentMethod === 'qr' ? 'border-[#ff6600] bg-orange-50' : 'border-gray-300 hover:border-gray-400'}`}>
+                                    <label className={`flex items-center p-3 border-2 rounded cursor-pointer transition-all ${paymentMethod === 'qr' ? 'border-[#ff6600] bg-orange-50' : 'border-gray-300 hover:border-gray-400'}`}>
                                         <input
                                             type="radio"
                                             name="payment"
@@ -1388,13 +1387,13 @@ const CheckoutPage = () => {
                                         />
                                         <div className="flex items-center gap-2">
                                             <span className="text-sm text-gray-900">Thanh toán qua QR Code / Chuyển khoản</span>
-                                            <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-semibold">
+                                            <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-semibold">
                                                 Nhanh
                                             </span>
                                         </div>
                                     </label>
 
-                                    <label className={`flex items-center p-4 border-2 rounded cursor-pointer transition-all ${paymentMethod === 'card' ? 'border-[#ff6600] bg-orange-50' : 'border-gray-300 hover:border-gray-400'}`}>
+                                    <label className={`flex items-center p-3 border-2 rounded cursor-pointer transition-all ${paymentMethod === 'card' ? 'border-[#ff6600] bg-orange-50' : 'border-gray-300 hover:border-gray-400'}`}>
                                         <input
                                             type="radio"
                                             name="payment"
@@ -1669,4 +1668,3 @@ const CheckoutPage = () => {
 };
 
 export default CheckoutPage;
-

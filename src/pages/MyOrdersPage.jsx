@@ -144,7 +144,7 @@ const MyOrdersPage = () => {
                   {step.icon}
                 </div>
                 <p
-                  className={`text-xs mt-2 text-center font-medium ${
+                  className={`text-xs mt-2 text-center font-medium max-w-[80px] leading-tight ${
                     isActive ? 'text-[#ff6600]' : 'text-gray-400'
                   }`}
                 >

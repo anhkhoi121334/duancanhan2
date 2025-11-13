@@ -268,13 +268,13 @@ const CartPage = () => {
 
   // Khi đăng nhập thành công và có pending checkout, chuyển đến trang checkout
   useEffect(() => {
-    if (isAuthenticated && pendingCheckout && items.length > 0 && acceptPolicy) {
+    if (isAuthenticated && pendingCheckout && items.length > 0) {
       setPendingCheckout(false);
       setShowLoginModal(false);
       setShowRegisterModal(false);
       navigate('/checkout');
     }
-  }, [isAuthenticated, pendingCheckout, items.length, acceptPolicy, navigate]);
+  }, [isAuthenticated, pendingCheckout, items.length, navigate]);
 
   // Helper function để xử lý update quantity với optimistic update
   const handleUpdateQuantity = useCallback(async (item, newQty, optimistic = true) => {
@@ -423,10 +423,6 @@ const CartPage = () => {
   const handleCheckout = () => {
     if (items.length === 0) {
       showToast('Giỏ hàng của bạn đang trống', 'error');
-      return;
-    }
-    if (!acceptPolicy) {
-      showToast('Vui lòng đồng ý với điều khoản', 'error');
       return;
     }
     
@@ -1042,35 +1038,11 @@ const CartPage = () => {
                   </span>
                 </div>
 
-                {/* Policy Checkbox */}
-                <div className="space-y-3 py-4 border-t">
-                  <label className="flex items-start gap-2 text-xs text-gray-600 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={acceptPolicy}
-                      onChange={(e) => setAcceptPolicy(e.target.checked)}
-                      className="mt-0.5 flex-shrink-0"
-                    />
-                    <span>
-                      TÔI MUỐN LƯU THÔNG TIN ĐỂ DÙNG SAU
-                    </span>
-                  </label>
-
-                  <label className="flex items-start gap-2 text-xs text-gray-600 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      className="mt-0.5 flex-shrink-0"
-                    />
-                    <span>
-                      TÔI ĐỒNG Ý VỚI <span className="text-[#ff6600]">CHÍNH SÁCH HOẠT ĐỘNG</span> CỦA ANKH
-                    </span>
-                  </label>
-                </div>
 
                 {/* Checkout Button */}
                 <button
                   onClick={handleCheckout}
-                  disabled={!acceptPolicy || items.length === 0 || !canCheckout}
+                  disabled={items.length === 0 || !canCheckout}
                   className="w-full bg-[#ff6600] text-white py-3 rounded font-bold text-sm hover:bg-orange-700 transition uppercase disabled:bg-gray-300 disabled:cursor-not-allowed"
                   title={!canCheckout ? checkoutMessage : undefined}
                 >
