@@ -206,12 +206,12 @@ const ProductList = () => {
         
         const response = await getProducts(params);
         
-        // Handle new API structure
-        const productsData = response.products?.data || response.data || [];
+        // Handle new API structure - ưu tiên response.data (mock data format)
+        const productsData = response.data || response.products?.data || [];
         
         setProducts(productsData);
         setFilters(response.filters || {});
-        setTotalPages(response.products?.last_page || response.last_page || 1);
+        setTotalPages(response.last_page || response.products?.last_page || 1);
         setLoading(false);
       } catch (err) {
         setError('Không thể tải sản phẩm. Vui lòng thử lại sau.');

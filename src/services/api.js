@@ -293,12 +293,14 @@ export const getProducts = async (params = {}) => {
       );
     }
     
-    // Price filter
-    if (params.minPrice) {
-      filteredProducts = filteredProducts.filter(p => p.price >= Number(params.minPrice));
+    // Price filter - hỗ trợ cả minPrice/maxPrice và min_price/max_price
+    const minPrice = params.minPrice || params.min_price;
+    const maxPrice = params.maxPrice || params.max_price;
+    if (minPrice) {
+      filteredProducts = filteredProducts.filter(p => p.price >= Number(minPrice));
     }
-    if (params.maxPrice) {
-      filteredProducts = filteredProducts.filter(p => p.price <= Number(params.maxPrice));
+    if (maxPrice) {
+      filteredProducts = filteredProducts.filter(p => p.price <= Number(maxPrice));
     }
     
     // Sort
