@@ -188,7 +188,46 @@ const ProductDetail = () => {
         setLoading(false);
       } catch (err) {
         console.error('Error fetching product detail:', err);
-        setError('Không thể tải sản phẩm. Vui lòng thử lại sau.');
+        
+        // Fallback to mock data khi backend không có
+        try {
+          const { products: mockProducts } = await import('../data/products');
+          const productId = parseInt(idOrSlug);
+          const mockProduct = mockProducts.find(p => p.id === productId);
+          
+          if (mockProduct) {
+            console.warn('⚠️ Sử dụng mock data cho sản phẩm:', mockProduct.name);
+            
+            // Convert mock product format to match API format
+            const formattedProduct = {
+              ...mockProduct,
+              price_sale: mockProduct.price,
+              variants: mockProduct.sizes?.map((size, idx) => ({
+                id: idx + 1,
+                size: { id: size, name: size.toString() },
+                color: { id: idx % mockProduct.colors.length, name: mockProduct.colors[idx % mockProduct.colors.length] },
+                price: mockProduct.price,
+                stock: 10
+              })) || [],
+              images_by_color: mockProduct.colors?.map((color, idx) => ({
+                color_id: idx + 1,
+                images: mockProduct.images || [mockProduct.image]
+              })) || []
+            };
+            
+            setProduct(formattedProduct);
+            setDisplayImages(mockProduct.images || [mockProduct.image]);
+            setRelatedProducts(mockProducts.filter(p => p.id !== productId).slice(0, 4));
+            setNewProducts(mockProducts.filter(p => p.id !== productId).slice(4, 8));
+            setError(null);
+          } else {
+            setError('Không tìm thấy sản phẩm. Vui lòng thử lại sau.');
+          }
+        } catch (mockErr) {
+          console.error('Error loading mock data:', mockErr);
+          setError('Không thể tải sản phẩm. Vui lòng thử lại sau.');
+        }
+        
         setLoading(false);
       }
     };

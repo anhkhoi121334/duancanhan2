@@ -1,5 +1,6 @@
 // Base URL của API - Laravel Backend
 import { API_URL } from '../config/env';
+import { products as mockProducts } from '../data/products';
 
 const API_BASE_URL = API_URL;
 
@@ -269,7 +270,64 @@ export const getProducts = async (params = {}) => {
     const response = await fetchWithTimeout(url);
     return await handleResponse(response);
   } catch (error) {
-    throw error;
+    // Fallback to mock data khi backend không có
+    console.warn('⚠️ Backend không khả dụng, sử dụng mock data:', error.message);
+    
+    // Filter mock products
+    let filteredProducts = [...mockProducts];
+    
+    // Category filter
+    if (params.category) {
+      filteredProducts = filteredProducts.filter(p => 
+        p.category?.toLowerCase() === params.category.toLowerCase()
+      );
+    }
+    
+    // Search filter
+    if (params.search) {
+      const searchLower = params.search.toLowerCase();
+      filteredProducts = filteredProducts.filter(p => 
+        p.name.toLowerCase().includes(searchLower) ||
+        p.code.toLowerCase().includes(searchLower) ||
+        p.description?.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    // Price filter
+    if (params.minPrice) {
+      filteredProducts = filteredProducts.filter(p => p.price >= Number(params.minPrice));
+    }
+    if (params.maxPrice) {
+      filteredProducts = filteredProducts.filter(p => p.price <= Number(params.maxPrice));
+    }
+    
+    // Sort
+    if (params.sort === 'price_asc') {
+      filteredProducts.sort((a, b) => a.price - b.price);
+    } else if (params.sort === 'price_desc') {
+      filteredProducts.sort((a, b) => b.price - a.price);
+    } else if (params.sort === 'name_asc') {
+      filteredProducts.sort((a, b) => a.name.localeCompare(b.name));
+    } else if (params.sort === 'name_desc') {
+      filteredProducts.sort((a, b) => b.name.localeCompare(a.name));
+    }
+    
+    // Pagination
+    const page = params.page || 1;
+    const limit = params.limit || 12;
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    const paginatedProducts = filteredProducts.slice(startIndex, endIndex);
+    
+    return {
+      data: paginatedProducts,
+      total: filteredProducts.length,
+      per_page: limit,
+      current_page: page,
+      last_page: Math.ceil(filteredProducts.length / limit),
+      from: startIndex + 1,
+      to: Math.min(endIndex, filteredProducts.length)
+    };
   }
 };
 
@@ -318,11 +376,39 @@ export const searchProducts = async (params = {}) => {
  */
 export const getProductById = async (id) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/products/${id}`);
+    const response = await fetchWithTimeout(`${API_BASE_URL}/products/${id}`);
     return await handleResponse(response);
   } catch (error) {
-    console.error(`Error fetching product ${id}:`, error);
-    throw error;
+    // Fallback to mock data khi backend không có
+    console.warn('⚠️ Backend không khả dụng, sử dụng mock data cho sản phẩm:', error.message);
+    
+    const productId = parseInt(id);
+    const mockProduct = mockProducts.find(p => p.id === productId);
+    
+    if (!mockProduct) {
+      throw new Error('Không tìm thấy sản phẩm');
+    }
+    
+    // Convert mock product format to match API format
+    return {
+      product: {
+        ...mockProduct,
+        price_sale: mockProduct.price,
+        variants: mockProduct.sizes?.map((size, idx) => ({
+          id: idx + 1,
+          size: { id: size, name: size.toString() },
+          color: { id: idx % mockProduct.colors.length, name: mockProduct.colors[idx % mockProduct.colors.length] },
+          price: mockProduct.price,
+          stock: 10
+        })) || [],
+        images_by_color: mockProduct.colors?.map((color, idx) => ({
+          color_id: idx + 1,
+          images: mockProduct.images || [mockProduct.image]
+        })) || []
+      },
+      related_products: mockProducts.filter(p => p.id !== productId).slice(0, 4),
+      new_products: mockProducts.filter(p => p.id !== productId).slice(4, 8)
+    };
   }
 };
 
@@ -654,6 +740,7 @@ export const getHomeData = async () => {
       products_sale: Array.isArray(data.products_sale) ? data.products_sale : []
     };
   } catch (error) {
+    console.warn('⚠️ Backend không khả dụng, sử dụng mock data cho trang chủ:', error.message);
     
     // Fallback data nếu API không khả dụng
     const fallbackData = {
@@ -662,8 +749,10 @@ export const getHomeData = async () => {
         { id: 2, name: 'Giày Nữ', slug: 'giay-nu', image: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=400' },
         { id: 3, name: 'Phụ kiện', slug: 'phu-kien', image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400' }
       ],
-      products_hot: [],
-      products_sale: []
+      // Lấy 8 sản phẩm đầu làm sản phẩm hot
+      products_hot: mockProducts.slice(0, 8),
+      // Lấy 8 sản phẩm tiếp theo làm sản phẩm sale
+      products_sale: mockProducts.slice(8, 16)
     };
     
     return fallbackData;
