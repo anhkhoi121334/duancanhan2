@@ -2,26 +2,111 @@ import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import SEO from '../components/SEO';
 import { useCartStore } from '../store/cartStore';
+import { useAuthStore } from '../store/authStore';
+import { getMyOrders } from '../services/api';
 
 const OrderSuccessPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { clearCart } = useCartStore();
+  const { isAuthenticated } = useAuthStore();
   const [orderData, setOrderData] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Lấy thông tin đơn hàng từ state (được truyền từ CheckoutPage)
-    if (location.state?.orderData) {
-      setOrderData(location.state.orderData);
-      // Clear giỏ hàng sau khi đặt hàng thành công
-      clearCart();
-    } else {
-      // Nếu không có orderData, redirect về trang chủ
+    const loadOrderData = async () => {
+      // Xử lý 2 trường hợp:
+      // 1. Có orderData từ state (COD payment từ CheckoutPage)
+      // 2. Có query params từ MoMo callback (order_id, method, status)
+      
+      const urlParams = new URLSearchParams(location.search);
+      const orderIdFromQuery = urlParams.get('order_id');
+      const methodFromQuery = urlParams.get('method');
+      const statusFromQuery = urlParams.get('status');
+      
+      // Trường hợp 1: Có orderData từ state (COD payment)
+      if (location.state?.orderData) {
+        setOrderData(location.state.orderData);
+        clearCart();
+        setLoading(false);
+        return;
+      }
+      
+      // Trường hợp 2: MoMo callback (có query params)
+      if (orderIdFromQuery && methodFromQuery === 'momo' && statusFromQuery === 'success') {
+        // Clear cart ngay khi thanh toán MoMo thành công
+        clearCart();
+        
+        // Fetch order data từ API
+        if (isAuthenticated) {
+          try {
+            const orders = await getMyOrders();
+            // Tìm order có code = orderIdFromQuery
+            const foundOrder = orders.find(order => 
+              order.code === orderIdFromQuery || 
+              order.order_code === orderIdFromQuery ||
+              String(order.id) === String(orderIdFromQuery)
+            );
+            
+            if (foundOrder) {
+              // Map order data từ API format sang format của OrderSuccessPage
+              setOrderData({
+                order_code: foundOrder.code || foundOrder.order_code || orderIdFromQuery,
+                customer_name: foundOrder.customer_name,
+                customer_phone: foundOrder.phone,
+                customer_email: foundOrder.email,
+                shipping_address: foundOrder.address,
+                note: foundOrder.note,
+                items: foundOrder.items || [],
+                subtotal: foundOrder.subtotal || foundOrder.total_amount,
+                shipping_fee: foundOrder.shipping_fee || 0,
+                discount_amount: foundOrder.discount_amount || 0,
+                total_amount: foundOrder.total_amount,
+                payment_method: 'momo',
+                created_at: foundOrder.created_at
+              });
+            } else {
+              // Nếu không tìm thấy, tạo minimal order data
+              setOrderData({
+                order_code: orderIdFromQuery,
+                payment_method: 'momo',
+                total_amount: 0,
+                created_at: new Date().toISOString()
+              });
+            }
+          } catch (error) {
+            console.error('❌ Error fetching order:', error);
+            // Tạo minimal order data nếu fetch fail
+            setOrderData({
+              order_code: orderIdFromQuery,
+              payment_method: 'momo',
+              total_amount: 0,
+              created_at: new Date().toISOString()
+            });
+          }
+        } else {
+          // Nếu chưa đăng nhập, tạo minimal order data
+          setOrderData({
+            order_code: orderIdFromQuery,
+            payment_method: 'momo',
+            total_amount: 0,
+            created_at: new Date().toISOString()
+          });
+        }
+        
+        setLoading(false);
+        return;
+      }
+      
+      // Nếu không có dữ liệu, redirect về trang chủ
+      setLoading(false);
       setTimeout(() => {
         navigate('/');
       }, 3000);
-    }
-  }, [location.state, clearCart, navigate]);
+    };
+    
+    loadOrderData();
+  }, [location.state, location.search, clearCart, navigate, isAuthenticated]);
 
   const formatPrice = (price) => {
     return price?.toLocaleString('vi-VN') || '0';
@@ -39,7 +124,22 @@ const OrderSuccessPage = () => {
     });
   };
 
-  // Bỏ loading spinner - redirect ngay nếu không có data
+  // Loading state
+  if (loading) {
+    return (
+      <>
+        <SEO title="Đang tải..." />
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-[#ff6600] mb-4"></div>
+            <p className="text-gray-600">Đang tải thông tin đơn hàng...</p>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  // Nếu không có orderData, redirect về trang chủ
   if (!orderData) {
     return null;
   }
@@ -65,11 +165,13 @@ const OrderSuccessPage = () => {
 
             {/* Title */}
             <h1 className="text-2xl md:text-3xl font-black text-gray-900 mb-3 uppercase tracking-tight">
-              Đặt hàng thành công!
+              {orderData.payment_method === 'momo' ? 'Thanh toán thành công!' : 'Đặt hàng thành công!'}
             </h1>
             
             <p className="text-gray-600 text-sm md:text-base mb-6">
-              Cảm ơn bạn đã mua hàng tại <span className="font-bold text-[#ff6600]">ANKH Store</span>
+              {orderData.payment_method === 'momo' 
+                ? 'Cảm ơn bạn đã thanh toán qua MoMo tại' 
+                : 'Cảm ơn bạn đã mua hàng tại'} <span className="font-bold text-[#ff6600]">ANKH Store</span>
             </p>
 
             {/* Order Code */}
@@ -83,13 +185,27 @@ const OrderSuccessPage = () => {
             )}
 
             {/* Status Message */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <div className={`border rounded-lg p-4 mb-6 ${
+              orderData.payment_method === 'momo' 
+                ? 'bg-green-50 border-green-200' 
+                : 'bg-blue-50 border-blue-200'
+            }`}>
               <div className="flex items-start gap-3">
-                <svg className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                </svg>
-                <p className="text-sm text-left text-gray-700">
-                  Đơn hàng của bạn đã được tiếp nhận và đang được xử lý. Chúng tôi sẽ liên hệ với bạn trong thời gian sớm nhất để xác nhận đơn hàng.
+                {orderData.payment_method === 'momo' ? (
+                  <svg className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                ) : (
+                  <svg className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                  </svg>
+                )}
+                <p className={`text-sm text-left ${
+                  orderData.payment_method === 'momo' ? 'text-green-700' : 'text-gray-700'
+                }`}>
+                  {orderData.payment_method === 'momo' 
+                    ? 'Đơn hàng của bạn đã được thanh toán thành công qua MoMo. Chúng tôi sẽ xử lý và giao hàng trong thời gian sớm nhất.'
+                    : 'Đơn hàng của bạn đã được tiếp nhận và đang được xử lý. Chúng tôi sẽ liên hệ với bạn trong thời gian sớm nhất để xác nhận đơn hàng.'}
                 </p>
               </div>
             </div>

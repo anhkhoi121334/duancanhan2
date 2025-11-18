@@ -397,10 +397,54 @@ const MyOrderDetailPage = () => {
                   <p className="text-gray-500 text-center py-8">Không có sản phẩm</p>
                 )}
               </div>
+
+              {/* Progress Timeline - Shopee Style */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <h2 className="text-lg font-bold text-gray-900 mb-6">Tiến trình đơn hàng</h2>
+                <OrderProgressTimeline status={order.status} />
+              </div>
             </div>
 
             {/* Right Column - Summary */}
             <div className="space-y-6">
+              {/* Order Summary */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <h3 className="text-lg font-bold text-gray-900 mb-4">Tổng quan đơn hàng</h3>
+                
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Tạm tính</span>
+                    <span className="font-semibold text-gray-900">
+                      {formatPrice(order.subtotal || order.total_amount || 0)}
+                    </span>
+                  </div>
+                  
+                  {order.shipping_fee > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Phí vận chuyển</span>
+                      <span className="font-semibold text-gray-900">
+                        {formatPrice(order.shipping_fee)}
+                      </span>
+                    </div>
+                  )}
+
+                  {order.discount_amount > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Giảm giá</span>
+                      <span className="font-semibold text-green-600">
+                        -{formatPrice(order.discount_amount)}
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="border-t pt-3 mt-3 flex justify-between">
+                    <span className="font-bold text-gray-900">Tổng cộng</span>
+                    <span className="font-black text-[#ff6600] text-xl">
+                      {formatPrice(order.total_amount || 0)}
+                    </span>
+                  </div>
+                </div>
+              </div>
 
               {/* Payment Info */}
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -415,16 +459,8 @@ const MyOrderDetailPage = () => {
                     {getPaymentMethodLabel(order.payment_method)}
                   </p>
 
-                  <div className="flex items-center gap-2 mt-4">
-                    <FiCalendar className="text-gray-600" />
-                    <span className="text-sm text-gray-600">Ngày đặt hàng:</span>
-                  </div>
-                  <p className="text-sm font-semibold text-gray-900 pl-6">
-                    {formatDate(order.created_at)}
-                  </p>
-
                   {order.payment_status && (
-                    <div className="mt-4 pt-4 border-t">
+                    <div className="mt-4">
                       <span className={`inline-block px-3 py-1.5 rounded-full text-xs font-semibold ${
                         order.payment_status === 'paid' 
                           ? 'bg-green-100 text-green-700' 
@@ -434,25 +470,7 @@ const MyOrderDetailPage = () => {
                       </span>
                     </div>
                   )}
-
-                  {order.estimated_delivery_date && (
-                    <div className="mt-4 pt-4 border-t">
-                      <div className="flex items-center gap-2 mb-2">
-                        <FiTruck className="text-gray-600" />
-                        <span className="text-sm text-gray-600">Ngày dự kiến giao hàng:</span>
-                      </div>
-                      <p className="text-sm font-semibold text-gray-900 pl-6">
-                        {formatDate(order.estimated_delivery_date)}
-                      </p>
-                    </div>
-                  )}
                 </div>
-              </div>
-
-              {/* Progress Timeline - Shopee Style */}
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h3 className="text-lg font-bold text-gray-900 mb-6">Tiến trình đơn hàng</h3>
-                <OrderProgressTimeline status={order.status} />
               </div>
 
               {/* Timeline History */}

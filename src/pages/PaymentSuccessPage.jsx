@@ -12,21 +12,46 @@ const PaymentSuccessPage = () => {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // Lấy thông tin đơn hàng từ state (được truyền từ CheckoutPage)
+    // Xử lý 2 trường hợp:
+    // 1. Có orderData từ state (QR payment từ CheckoutPage)
+    // 2. Có query params từ MoMo callback (order_id, method=momo)
+    
+    const urlParams = new URLSearchParams(location.search);
+    const orderIdFromQuery = urlParams.get('order_id');
+    const methodFromQuery = urlParams.get('method');
+    
+    // Trường hợp 1: Có orderData từ state (QR payment)
     if (location.state?.orderData) {
       setOrderData(location.state.orderData);
       setQrData(location.state.qrData || null);
-      // Clear giỏ hàng sau khi thanh toán thành công
       clearCart();
-      // Trigger animation after mount
       setTimeout(() => setMounted(true), 100);
-    } else {
-      // Nếu không có orderData, redirect về trang chủ
-      setTimeout(() => {
-        navigate('/');
-      }, 3000);
+      return;
     }
-  }, [location.state, clearCart, navigate]);
+    
+    // Trường hợp 2: MoMo callback (có query params)
+    if (orderIdFromQuery && methodFromQuery === 'momo') {
+      // Clear cart ngay khi thanh toán MoMo thành công
+      clearCart();
+      
+      // Có thể fetch order data từ API nếu cần
+      // Hiện tại chỉ hiển thị thông báo thành công
+      setOrderData({
+        order_code: orderIdFromQuery,
+        payment_method: 'momo',
+        total_amount: 0, // Sẽ được fetch từ API nếu cần
+        created_at: new Date().toISOString()
+      });
+      
+      setTimeout(() => setMounted(true), 100);
+      return;
+    }
+    
+    // Nếu không có dữ liệu, redirect về trang chủ
+    setTimeout(() => {
+      navigate('/');
+    }, 3000);
+  }, [location.state, location.search, clearCart, navigate]);
 
   const formatPrice = (price) => {
     return price?.toLocaleString('vi-VN') || '0';

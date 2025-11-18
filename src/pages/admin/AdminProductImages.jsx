@@ -23,6 +23,10 @@ const AdminProductImages = () => {
   const [filePreviews, setFilePreviews] = useState([]);
   const [draggedIndex, setDraggedIndex] = useState(null);
   const [reordering, setReordering] = useState(false);
+  const [colors, setColors] = useState([]);
+  const [variants, setVariants] = useState([]);
+  const [selectedColorId, setSelectedColorId] = useState('');
+  const [selectedColorFilter, setSelectedColorFilter] = useState('all'); // 'all' hoặc color_id
 
   // Check if user is admin
   useEffect(() => {
@@ -52,6 +56,8 @@ const AdminProductImages = () => {
     if (productId) {
       fetchProduct();
       fetchImages();
+      fetchColors();
+      fetchVariants();
     }
   }, [productId]);
 
@@ -111,6 +117,77 @@ const AdminProductImages = () => {
     }
   };
 
+  const fetchColors = async () => {
+    try {
+      const token = localStorage.getItem('admin_token');
+      
+      // Try admin endpoint first, fallback to public endpoint
+      let response = await fetch(`${API_URL}/admin/colors`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        response = await fetch(`${API_URL}/colors`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json'
+          }
+        });
+      }
+
+      const data = await response.json();
+      
+      // Handle different response formats
+      if (Array.isArray(data)) {
+        setColors(data);
+      } else if (data.data && Array.isArray(data.data)) {
+        setColors(data.data);
+      } else if (data.colors && Array.isArray(data.colors)) {
+        setColors(data.colors);
+      } else {
+        setColors([]);
+      }
+    } catch (error) {
+      console.error('❌ Error fetching colors:', error);
+      setColors([]);
+    }
+  };
+
+  const fetchVariants = async () => {
+    try {
+      const token = localStorage.getItem('admin_token');
+      
+      const response = await fetch(`${API_URL}/products/${productId}/variants`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      });
+
+      if (!response.ok) return;
+
+      const data = await response.json();
+      
+      // Handle different response formats
+      const variantsData = data.variants || data.data || (Array.isArray(data) ? data : []);
+      setVariants(variantsData);
+      
+      // Auto-select first color if available
+      if (variantsData.length > 0 && !selectedColorId) {
+        const firstColorId = variantsData[0].color_id;
+        if (firstColorId) {
+          setSelectedColorId(String(firstColorId));
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error fetching variants:', error);
+      setVariants([]);
+    }
+  };
+
   const menuItems = [
     { icon: <FiGrid />, label: 'Dashboard', path: '/admin/dashboard' },
     { icon: <FiPackage />, label: 'Sản phẩm', path: '/admin/products' },
@@ -166,6 +243,11 @@ const AdminProductImages = () => {
       return;
     }
 
+    if (!selectedColorId) {
+      alert('Vui lòng chọn màu sắc cho ảnh!');
+      return;
+    }
+
     setUploading(true);
 
     try {
@@ -176,7 +258,10 @@ const AdminProductImages = () => {
         formData.append('images[]', file);
       });
 
-      console.log(`📸 Đang upload ${selectedFiles.length} ảnh cho sản phẩm #${productId}...`);
+      // Thêm color_id vào formData
+      formData.append('color_id', selectedColorId);
+
+      console.log(`📸 Đang upload ${selectedFiles.length} ảnh cho sản phẩm #${productId} với màu #${selectedColorId}...`);
 
       const response = await fetch(`${API_URL}/products/${productId}/images`, {
         method: 'POST',
@@ -411,6 +496,40 @@ const AdminProductImages = () => {
                 <h2 className="text-xl font-bold text-gray-800 mb-6">Upload Ảnh Mới</h2>
                 
                 <div className="space-y-4">
+                  {/* Color Selector */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Chọn màu sắc <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={selectedColorId}
+                      onChange={(e) => setSelectedColorId(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    >
+                      <option value="">-- Chọn màu --</option>
+                      {variants.length > 0 ? (
+                        variants.map((variant) => {
+                          const color = colors.find(c => c.id === variant.color_id);
+                          if (!color) return null;
+                          return (
+                            <option key={variant.color_id} value={variant.color_id}>
+                              {color.type} {color.hex_code && `(${color.hex_code})`}
+                            </option>
+                          );
+                        })
+                      ) : (
+                        colors.map((color) => (
+                          <option key={color.id} value={color.id}>
+                            {color.type} {color.hex_code && `(${color.hex_code})`}
+                          </option>
+                        ))
+                      )}
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Chọn màu sắc cho ảnh sản phẩm
+                    </p>
+                  </div>
+
                   {/* File Input */}
                   <div>
                     <label className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 cursor-pointer transition-colors">
@@ -484,94 +603,181 @@ const AdminProductImages = () => {
                   )}
                 </div>
 
+                {/* Color Filter */}
+                {images.length > 0 && (
+                  <div className="mb-6">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Lọc theo màu:
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        onClick={() => setSelectedColorFilter('all')}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          selectedColorFilter === 'all'
+                            ? 'bg-purple-600 text-white'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        Tất cả ({images.length})
+                      </button>
+                      {variants.map((variant) => {
+                        const color = colors.find(c => c.id === variant.color_id);
+                        if (!color) return null;
+                        const colorImages = images.filter(img => String(img.color_id) === String(variant.color_id));
+                        if (colorImages.length === 0) return null;
+                        return (
+                          <button
+                            key={variant.color_id}
+                            onClick={() => setSelectedColorFilter(String(variant.color_id))}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+                              selectedColorFilter === String(variant.color_id)
+                                ? 'bg-purple-600 text-white'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            }`}
+                          >
+                            <span
+                              className="w-4 h-4 rounded border border-gray-300"
+                              style={{ backgroundColor: color.hex_code || '#CCCCCC' }}
+                            ></span>
+                            {color.type} ({colorImages.length})
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 {loading ? (
                   <div className="text-center py-12">
                     <p className="text-gray-500">Đang tải...</p>
                   </div>
-                ) : images.length > 0 ? (
-                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                    {images.map((image, index) => (
-                      <div
-                        key={image.id || index}
-                        draggable
-                        onDragStart={() => handleDragStart(index)}
-                        onDragOver={(e) => handleDragOver(e, index)}
-                        onDragEnd={handleDragEnd}
-                        onDrop={handleDrop}
-                        className={`relative group cursor-move ${
-                          draggedIndex === index ? 'opacity-50' : ''
-                        } ${reordering ? 'pointer-events-none' : ''}`}
-                      >
-                        <div className="aspect-square border-2 border-gray-300 rounded-lg overflow-hidden bg-gray-100">
-                          <img 
-                            src={image.image_url} 
-                            alt={`Product ${index + 1}`} 
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.target.style.display = 'none';
-                              e.target.nextElementSibling.style.display = 'flex';
-                            }}
-                          />
-                          <div className="w-full h-full hidden items-center justify-center">
-                            <FiImage className="text-gray-400 text-4xl" />
-                          </div>
-                        </div>
-                        
-                        {/* Drag Handle */}
-                        <div className="absolute top-2 left-2 p-1.5 bg-white bg-opacity-90 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
-                          <FiMenu className="text-gray-600 text-sm" />
-                        </div>
-                        
-                        {/* Order Number Badge */}
-                        <div className="absolute bottom-2 left-2 px-2 py-1 bg-black bg-opacity-50 text-white text-xs rounded font-semibold">
-                          #{index + 1}
-                        </div>
-                        
-                        {/* Delete Button */}
-                        <button
-                          onClick={() => handleDeleteImage(image.id)}
-                          className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
-                          title="Xóa ảnh"
-                        >
-                          <FiTrash2 className="text-sm" />
-                        </button>
-                        
-                        {/* New Badge */}
-                        {image.created_at && (
-                          <div className="absolute top-2 left-2 px-2 py-1 bg-green-500 text-white text-xs rounded">
-                            Mới
-                          </div>
-                        )}
-                        
-                        {/* Arrow Controls */}
-                        <div className="absolute bottom-2 right-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button
-                            onClick={() => moveImage(index, 'up')}
-                            disabled={index === 0 || reordering}
-                            className="p-1.5 bg-white bg-opacity-90 rounded-lg hover:bg-opacity-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                            title="Di chuyển lên"
-                          >
-                            <FiArrowUp className="text-gray-600 text-sm" />
-                          </button>
-                          <button
-                            onClick={() => moveImage(index, 'down')}
-                            disabled={index === images.length - 1 || reordering}
-                            className="p-1.5 bg-white bg-opacity-90 rounded-lg hover:bg-opacity-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                            title="Di chuyển xuống"
-                          >
-                            <FiArrowDown className="text-gray-600 text-sm" />
-                          </button>
-                        </div>
+                ) : (() => {
+                  // Filter images by selected color
+                  const filteredImages = selectedColorFilter === 'all' 
+                    ? images 
+                    : images.filter(img => String(img.color_id) === selectedColorFilter);
+                  
+                  // Group images by color
+                  const groupedImages = filteredImages.reduce((acc, img) => {
+                    const colorId = String(img.color_id || 'no-color');
+                    if (!acc[colorId]) acc[colorId] = [];
+                    acc[colorId].push(img);
+                    return acc;
+                  }, {});
+
+                  if (filteredImages.length === 0) {
+                    return (
+                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center">
+                        <FiImage className="mx-auto text-5xl text-gray-400 mb-4" />
+                        <p className="text-gray-500 mb-2">Không có ảnh nào</p>
+                        <p className="text-gray-400 text-sm">Chọn màu khác hoặc upload ảnh mới</p>
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center">
-                    <FiImage className="mx-auto text-5xl text-gray-400 mb-4" />
-                    <p className="text-gray-500 mb-2">Chưa có ảnh nào</p>
-                    <p className="text-gray-400 text-sm">Upload ảnh đầu tiên cho sản phẩm này</p>
-                  </div>
-                )}
+                    );
+                  }
+
+                  return (
+                    <>
+                      {Object.entries(groupedImages).map(([colorId, colorImages]) => {
+                        const color = colors.find(c => String(c.id) === colorId);
+                        const colorName = color ? color.type : 'Không có màu';
+                        const colorHex = color?.hex_code || '#CCCCCC';
+
+                        return (
+                          <div key={colorId} className="mb-8">
+                            <div className="flex items-center gap-3 mb-4 pb-2 border-b border-gray-200">
+                              <span
+                                className="w-6 h-6 rounded border border-gray-300"
+                                style={{ backgroundColor: colorHex }}
+                              ></span>
+                              <h3 className="text-lg font-semibold text-gray-800">
+                                {colorName} ({colorImages.length} ảnh)
+                              </h3>
+                            </div>
+                            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                              {colorImages.map((image, imgIndex) => {
+                                const globalIndex = images.findIndex(img => img.id === image.id);
+                                return (
+                                  <div
+                                    key={image.id || imgIndex}
+                                    draggable
+                                    onDragStart={() => handleDragStart(globalIndex)}
+                                    onDragOver={(e) => handleDragOver(e, globalIndex)}
+                                    onDragEnd={handleDragEnd}
+                                    onDrop={handleDrop}
+                                    className={`relative group cursor-move ${
+                                      draggedIndex === globalIndex ? 'opacity-50' : ''
+                                    } ${reordering ? 'pointer-events-none' : ''}`}
+                                  >
+                                    <div className="aspect-square border-2 border-gray-300 rounded-lg overflow-hidden bg-gray-100">
+                                      <img 
+                                        src={image.image_url} 
+                                        alt={`Product ${imgIndex + 1}`} 
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => {
+                                          e.target.style.display = 'none';
+                                          e.target.nextElementSibling.style.display = 'flex';
+                                        }}
+                                      />
+                                      <div className="w-full h-full hidden items-center justify-center">
+                                        <FiImage className="text-gray-400 text-4xl" />
+                                      </div>
+                                    </div>
+                                    
+                                    {/* Drag Handle */}
+                                    <div className="absolute top-2 left-2 p-1.5 bg-white bg-opacity-90 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <FiMenu className="text-gray-600 text-sm" />
+                                    </div>
+                                    
+                                    {/* Order Number Badge */}
+                                    <div className="absolute bottom-2 left-2 px-2 py-1 bg-black bg-opacity-50 text-white text-xs rounded font-semibold">
+                                      #{imgIndex + 1}
+                                    </div>
+                                    
+                                    {/* Delete Button */}
+                                    <button
+                                      onClick={() => handleDeleteImage(image.id)}
+                                      className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                                      title="Xóa ảnh"
+                                    >
+                                      <FiTrash2 className="text-sm" />
+                                    </button>
+                                    
+                                    {/* New Badge */}
+                                    {image.created_at && (
+                                      <div className="absolute top-2 left-2 px-2 py-1 bg-green-500 text-white text-xs rounded">
+                                        Mới
+                                      </div>
+                                    )}
+                                    
+                                    {/* Arrow Controls */}
+                                    <div className="absolute bottom-2 right-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <button
+                                        onClick={() => moveImage(globalIndex, 'up')}
+                                        disabled={globalIndex === 0 || reordering}
+                                        className="p-1.5 bg-white bg-opacity-90 rounded-lg hover:bg-opacity-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        title="Di chuyển lên"
+                                      >
+                                        <FiArrowUp className="text-gray-600 text-sm" />
+                                      </button>
+                                      <button
+                                        onClick={() => moveImage(globalIndex, 'down')}
+                                        disabled={globalIndex === images.length - 1 || reordering}
+                                        className="p-1.5 bg-white bg-opacity-90 rounded-lg hover:bg-opacity-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        title="Di chuyển xuống"
+                                      >
+                                        <FiArrowDown className="text-gray-600 text-sm" />
+                                      </button>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </>
+                  );
+                })()}
               </div>
             </div>
           </main>

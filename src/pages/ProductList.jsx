@@ -297,37 +297,40 @@ const ProductList = () => {
       {/* DESKTOP */}
       <div className="hidden md:block">
         <div className="max-w-6xl mx-auto px-6 py-6 grid grid-cols-12 gap-6">
-          <Sidebar 
-            brands={brands}
-            colors={colors}
-            selectedBrand={selectedBrand}
-            onBrandSelect={setSelectedBrand}
-            selectedGender={selectedGender}
-            onGenderSelect={setSelectedGender}
-            selectedColor={selectedColor}
-            onColorSelect={setSelectedColor}
-            selectedCategory={selectedCategory}
-            onCategorySelect={setSelectedCategory}
-            selectedAccessory={selectedAccessory}
-            onAccessorySelect={setSelectedAccessory}
-            selectedFeatured={selectedFeatured}
-            onFeaturedSelect={setSelectedFeatured}
-            selectedCategories={selectedCategories}
-            onCategoriesSelect={setSelectedCategories}
-            minPrice={minPrice}
-            maxPrice={maxPrice}
-            onPriceChange={handlePriceChange}
-            dateFilter={dateFilter}
-            onDateFilterChange={setDateFilter}
-            dayRange={dayRange}
-            onDayRangeChange={setDayRange}
-            selectedPriceRange={selectedPriceRange}
-            onPriceRangeSelect={handlePriceRangeSelect}
-            filters={filters}
-          />
+          {/* Ẩn Sidebar khi ở Flash Sale */}
+          {selectedFeatured !== 'sale' && (
+            <Sidebar 
+              brands={brands}
+              colors={colors}
+              selectedBrand={selectedBrand}
+              onBrandSelect={setSelectedBrand}
+              selectedGender={selectedGender}
+              onGenderSelect={setSelectedGender}
+              selectedColor={selectedColor}
+              onColorSelect={setSelectedColor}
+              selectedCategory={selectedCategory}
+              onCategorySelect={setSelectedCategory}
+              selectedAccessory={selectedAccessory}
+              onAccessorySelect={setSelectedAccessory}
+              selectedFeatured={selectedFeatured}
+              onFeaturedSelect={setSelectedFeatured}
+              selectedCategories={selectedCategories}
+              onCategoriesSelect={setSelectedCategories}
+              minPrice={minPrice}
+              maxPrice={maxPrice}
+              onPriceChange={handlePriceChange}
+              dateFilter={dateFilter}
+              onDateFilterChange={setDateFilter}
+              dayRange={dayRange}
+              onDayRangeChange={setDayRange}
+              selectedPriceRange={selectedPriceRange}
+              onPriceRangeSelect={handlePriceRangeSelect}
+              filters={filters}
+            />
+          )}
 
           {/* Main content */}
-          <main className="col-span-9">
+          <main className={selectedFeatured === 'sale' ? 'col-span-12' : 'col-span-9'}>
             {/* Banner */}
             <section className="px-0 scroll-reveal fade-up">
               <div className="relative rounded-xl overflow-hidden shadow-sm">
@@ -699,17 +702,6 @@ const ProductList = () => {
           <section className="px-3 mt-3 scroll-reveal fade-up delay-300">
             <h3 className="text-[11px] font-bold text-gray-600 uppercase tracking-wide mb-2">DÒNG SẢN PHẨM & KIỂU DÁNG</h3>
             <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-              {selectedChip && (
-                <button 
-                  onClick={() => {
-                    setSelectedChip('');
-                    setCurrentPage(1);
-                  }}
-                  className="px-3 py-1.5 text-[12px] rounded-full border shadow-sm whitespace-nowrap bg-gray-800 text-white hover:bg-gray-700"
-                >
-                  ✕ Xóa bộ lọc
-                </button>
-              )}
               {['Low Top', 'High Top', 'Slip on', 'Basas', 'Urbas', 'Vintas'].map((chip) => (
                 <button 
                   key={chip} 
